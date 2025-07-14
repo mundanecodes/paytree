@@ -4,13 +4,10 @@ module Payments
       module Daraja
         extend Payments::FeatureSet
 
-        supports :stk_push
-        # You can uncomment more as you implement them:
-        # supports :stk_query, :b2c, :b2b, :reversal, :c2b_register, :c2b_simulate, :balance
+        supports :stk_push, :stk_query
 
-        autoload :Base, "payments/mpesa/adapters/daraja/base"
         autoload :StkPush, "payments/mpesa/adapters/daraja/stk_push"
-        # autoload :StkQuery, "payments/mpesa/adapters/daraja/stk_query" (future)
+        autoload :StkQuery, "payments/mpesa/adapters/daraja/stk_query"
       end
     end
   end
