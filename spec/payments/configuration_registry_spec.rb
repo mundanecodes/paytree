@@ -2,15 +2,9 @@ require "payments"
 
 RSpec.describe Payments::ConfigurationRegistry do
   let(:registry) { described_class.new }
+  let(:mpesa_class) { Payments::Configs::Mpesa }
 
-  let(:mpesa_class) do
-    Data.define(:key, :secret, :sandbox, :shortcode, :passkey, :extras) do
-      def base_url
-        sandbox ? "sandbox.url" : "prod.url"
-      end
-    end
-  end
-
+  # Simulate a user-defined config struct for Airtel
   let(:airtel_class) do
     Data.define(:client_id, :client_secret, :region)
   end
@@ -27,7 +21,7 @@ RSpec.describe Payments::ConfigurationRegistry do
 
     config = registry[:mpesa]
     expect(config.key).to eq("abc")
-    expect(config.base_url).to eq("sandbox.url")
+    expect(config.base_url).to eq("https://sandbox.safaricom.co.ke")
     expect(config.passkey).to eq("passkey12345")
   end
 

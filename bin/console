@@ -3,9 +3,31 @@
 
 require "bundler/setup"
 require "payments"
-
-# You can add fixtures and/or initialization code here to make experimenting
-# with your gem easier. You can also use a different console, if you like.
-
 require "irb"
-IRB.start(__FILE__)
+
+# Optional preload for experimentation
+Payments.configure(:mpesa, Payments::Configs::Mpesa) do |config|
+  config[:key] = "test_key"
+  config[:secret] = "test_secret"
+  config[:shortcode] = "600999"
+  config[:passkey] = "passkey_here"
+  config[:sandbox] = true
+  config[:extras] = {callback_url: "https://yourapp.com/callback"}
+end
+
+# Optional: define a custom console context (like Rails console helpers)
+module ConsoleContext
+  def mpesa
+    Payments[:mpesa]
+  end
+
+  def stk_push(phone:, amount:, reference:)
+    Payments::Mpesa::StkPush.call(phone_number: phone, amount:, reference:)
+  end
+end
+
+IRB.setup(nil)
+workspace = IRB::WorkSpace.new(ConsoleContext)
+IRB.conf[:MAIN_CONTEXT] = IRB::Context.new(IRB::Irb.new(nil, workspace), workspace)
+
+IRB.start
