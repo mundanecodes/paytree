@@ -6,6 +6,8 @@ module Payments
       :shortcode,
       :passkey,
       :adapter,
+      :initiator_name,
+      :initiator_password,
       :sandbox,       # true/false for environment
       :extras         # optional hash for additional settings
     ) do

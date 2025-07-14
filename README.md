@@ -34,7 +34,6 @@ else
 end
 ```
 
-
 ## STK Query
 
 Query the status of a previously initiated STK Push.
@@ -51,3 +50,26 @@ if response.success?
 else
   puts "STK Query failed: #{response.message}"
 end
+```
+
+## Initiate B2C Payment
+
+Send funds directly to a customer’s M-Pesa wallet via the B2C API.
+
+### Example
+```ruby
+response = Payments::Mpesa::B2C.call(
+  phone_number: "+254712345678",
+  amount: 100,
+  reference: "SALAARY2023JULY",
+  remarks: "Monthly salary",
+  occasion: "Payout",
+  command_id: "BusinessPayment" # optional – defaults to "BusinessPayment"
+)
+
+if response.success?
+  puts "B2C payment initiated: #{response.data["ConversationID"]}"
+else
+  puts "Failed to initiate B2C payment: #{response.message}"
+end
+```

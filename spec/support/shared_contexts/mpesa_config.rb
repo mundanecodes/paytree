@@ -15,7 +15,16 @@ RSpec.shared_context "Mpesa config" do
       config[:shortcode] = "600999"
       config[:passkey] = "PASSKEY"
       config[:sandbox] = true
-      config[:extras] = {callback_url: "https://example.com/callback"}
+
+      config[:initiator_name] = "test_initiator"
+      config[:initiator_password] = "test_password"
+
+      config[:extras] = {
+        cert_path: File.expand_path("spec/payments/mpesa/certs/test.cer", Dir.pwd),
+        timeout_url: "https://example.com/mpesa/timeout",
+        result_url: "https://example.com/mpesa/result"
+      }
+
       config[:adapter] = Payments::Mpesa::Adapters::Daraja
     end
   end

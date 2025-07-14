@@ -12,7 +12,15 @@ Payments.configure(:mpesa, Payments::Configs::Mpesa) do |config|
   config[:shortcode] = "600999"
   config[:passkey] = "passkey_here"
   config[:sandbox] = true
-  config[:extras] = {callback_url: "https://yourapp.com/callback"}
+  config[:initiator_name] = "testapi"
+  config[:initiator_password] = "initiator-password-123"
+
+  config[:extras] = {
+    callback_url: "https://example.com/callback",
+    cert_path: File.expand_path("spec/payments/mpesa/certs/test.cer", Dir.pwd),
+    timeout_url: "https://sandbox.example.com/mpesa/timeout",
+    result_url: "https://sandbox.example.com/mpesa/result"
+  }
 end
 
 # Optional: define a custom console context (like Rails console helpers)
