@@ -9,7 +9,9 @@ module Payments
 
           class << self
             def call(short_code:, receiver_shortcode:, amount:, account_reference:, **opts)
-              config = Payments[:mpesa]
+              command_id = opts[:command_id] || "BusinessPayBill"
+
+              validate_for(:b2b, short_code:, receiver_shortcode:, account_reference:, amount:, command_id:)
 
               payload = {
                 Initiator: config.initiator_name,
@@ -20,7 +22,7 @@ module Payments
                 PartyA: short_code,
                 PartyB: receiver_shortcode,
                 AccountReference: account_reference,
-                CommandID: opts[:command_id] || "BusinessPayBill",
+                CommandID: command_id,
                 Remarks: opts[:remarks] || "B2B Payment",
                 QueueTimeOutURL: config.extras[:timeout_url],
                 ResultURL: config.extras[:result_url]

@@ -18,7 +18,7 @@ RSpec.describe Payments::Mpesa::StkPush do
         headers: {"Content-Type" => "application/json"}
       )
 
-      described_class.call(phone_number: "+254712345678", amount: 100, reference: "INV-1")
+      described_class.call(phone_number: "254712345678", amount: 100, reference: "INV-1")
     end
 
     it_behaves_like "a successful response", :stk_push
@@ -39,7 +39,7 @@ RSpec.describe Payments::Mpesa::StkPush do
         headers: {"Content-Type" => "application/json"}
       )
 
-      described_class.call(phone_number: "+2547...", amount: 10, reference: "R1")
+      described_class.call(phone_number: "254712345678", amount: 10, reference: "R1")
     end
 
     it_behaves_like "a successful response", :stk_push
@@ -54,8 +54,82 @@ RSpec.describe Payments::Mpesa::StkPush do
       )
 
       expect {
-        described_class.call(phone_number: "+254712345678", amount: 100, reference: "INV-2")
+        described_class.call(phone_number: "254712345678", amount: 100, reference: "INV-2")
       }.to raise_error(Faraday::ParsingError)
+    end
+  end
+
+  describe "parameter validation" do
+    context "phone_number validation" do
+      it "raises ArgumentError when phone_number is blank" do
+        expect {
+          described_class.call(phone_number: "", amount: 100, reference: "INV-1")
+        }.to raise_error(ArgumentError, /phone_number must be a valid Kenyan format/)
+      end
+
+      it "raises ArgumentError when phone_number is nil" do
+        expect {
+          described_class.call(phone_number: nil, amount: 100, reference: "INV-1")
+        }.to raise_error(ArgumentError, /phone_number must be a valid Kenyan format/)
+      end
+
+      it "raises ArgumentError when phone_number is invalid format" do
+        expect {
+          described_class.call(phone_number: "0712345678", amount: 100, reference: "INV-1")
+        }.to raise_error(ArgumentError, /phone_number must be a valid Kenyan format/)
+      end
+
+      it "raises ArgumentError when phone_number is too short" do
+        expect {
+          described_class.call(phone_number: "25471234567", amount: 100, reference: "INV-1")
+        }.to raise_error(ArgumentError, /phone_number must be a valid Kenyan format/)
+      end
+
+      it "raises ArgumentError when phone_number is too long" do
+        expect {
+          described_class.call(phone_number: "2547123456789", amount: 100, reference: "INV-1")
+        }.to raise_error(ArgumentError, /phone_number must be a valid Kenyan format/)
+      end
+    end
+
+    context "amount validation" do
+      it "raises ArgumentError when amount is zero" do
+        expect {
+          described_class.call(phone_number: "254712345678", amount: 0, reference: "INV-1")
+        }.to raise_error(ArgumentError, /amount must be a positive number/)
+      end
+
+      it "raises ArgumentError when amount is negative" do
+        expect {
+          described_class.call(phone_number: "254712345678", amount: -10, reference: "INV-1")
+        }.to raise_error(ArgumentError, /amount must be a positive number/)
+      end
+
+      it "raises ArgumentError when amount is not numeric" do
+        expect {
+          described_class.call(phone_number: "254712345678", amount: "invalid", reference: "INV-1")
+        }.to raise_error(ArgumentError, /amount must be a positive number/)
+      end
+    end
+
+    context "reference validation" do
+      it "raises ArgumentError when reference is blank" do
+        expect {
+          described_class.call(phone_number: "254712345678", amount: 100, reference: "")
+        }.to raise_error(ArgumentError, /reference cannot be blank/)
+      end
+
+      it "raises ArgumentError when reference is nil" do
+        expect {
+          described_class.call(phone_number: "254712345678", amount: 100, reference: nil)
+        }.to raise_error(ArgumentError, /reference cannot be blank/)
+      end
+
+      it "raises ArgumentError when reference is whitespace only" do
+        expect {
+          described_class.call(phone_number: "254712345678", amount: 100, reference: "   ")
+        }.to raise_error(ArgumentError, /reference cannot be blank/)
+      end
     end
   end
 end

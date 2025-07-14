@@ -1,3 +1,5 @@
+require "payments/mpesa/adapters/daraja/base"
+
 module Payments
   module Mpesa
     module Adapters
@@ -8,9 +10,7 @@ module Payments
 
           class << self
             def register_urls(short_code:, confirmation_url:, validation_url:)
-              unless [confirmation_url, validation_url].all?
-                raise ArgumentError, "Both confirmation_url and validation_url are required"
-              end
+              validate_for(:c2b_register, short_code:, confirmation_url:, validation_url:)
 
               payload = {
                 ShortCode: short_code,
@@ -24,7 +24,7 @@ module Payments
             end
 
             def simulate(phone_number:, amount:, reference:)
-              config = Payments[:mpesa]
+              validate_for(:c2b_simulate, phone_number:, amount:, reference:)
 
               payload = {
                 ShortCode: config.shortcode,

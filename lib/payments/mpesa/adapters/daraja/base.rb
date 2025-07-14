@@ -6,18 +6,13 @@ module Payments
       module Daraja
         class Base
           class << self
+            def config = Payments[:mpesa]
+
             def connection
-              config = Payments[:mpesa]
               @connection ||= Faraday.new(url: config.base_url) do |conn|
                 conn.request :json
                 conn.response :json, content_type: "application/json"
               end
-            end
-
-            def token
-              return @token if token_valid?
-
-              fetch_token
             end
 
             def headers
@@ -25,6 +20,12 @@ module Payments
                 "Authorization" => "Bearer #{token}",
                 "Content-Type" => "application/json"
               }
+            end
+
+            def token
+              return @token if token_valid?
+
+              fetch_token
             end
 
             def encrypt_credential(config)
@@ -41,10 +42,52 @@ module Payments
               end
             end
 
+            VALIDATIONS = {
+              c2b_register: {required: [:short_code, :confirmation_url, :validation_url]},
+              c2b_simulate: {required: [:phone_number, :amount, :reference]},
+              stk_push: {required: [:phone_number, :amount, :reference]},
+              b2c: {required: [:phone_number, :amount], config: [:result_url]},
+              b2b: {
+                required: [:short_code, :receiver_shortcode, :account_reference, :amount],
+                config: [:result_url, :timeout_url],
+                command_id: %w[BusinessPayBill BusinessBuyGoods]
+              }
+            }.freeze
+
+            def validate_for(operation, params = {})
+              rules = VALIDATIONS[operation]
+              raise ArgumentError, "Unknown operation: #{operation}" unless rules
+
+              Array(rules[:required]).each { validate_field(it, params[it]) }
+              Array(rules[:config]).each { raise ArgumentError, "Missing `#{it}` in Mpesa extras config" unless config.extras[it] }
+
+              if rules[:command_id] && params[:command_id]
+                unless rules[:command_id].include?(params[:command_id])
+                  raise ArgumentError, "command_id must be one of: #{rules[:command_id].join(", ")}"
+                end
+              end
+            end
+
+            def validate_field(field, value)
+              case field
+              when :amount
+                unless value.is_a?(Numeric) && value >= 1
+                  raise ArgumentError, "amount must be a positive number"
+                end
+              when :phone_number
+                unless value.to_s.match?(/^254\d{9}$/)
+                  raise ArgumentError, "phone_number must be a valid Kenyan format (254XXXXXXXXX)"
+                end
+              else
+                if value.to_s.strip.empty?
+                  raise ArgumentError, "#{field} cannot be blank"
+                end
+              end
+            end
+
             private
 
             def fetch_token
-              config = Payments[:mpesa]
               cred = Base64.strict_encode64("#{config.key}:#{config.secret}")
 
               resp = connection.get("/oauth/v1/generate", grant_type: "client_credentials") do |r|

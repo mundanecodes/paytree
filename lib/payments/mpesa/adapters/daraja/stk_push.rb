@@ -9,7 +9,7 @@ module Payments
 
           class << self
             def call(phone_number:, amount:, reference:)
-              config = Payments[:mpesa]
+              validate_for(:stk_push, phone_number:, amount:, reference:)
               timestamp = Time.now.strftime("%Y%m%d%H%M%S")
               password = Base64.strict_encode64("#{config.shortcode}#{config.passkey}#{timestamp}")
 

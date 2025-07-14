@@ -4,7 +4,7 @@ RSpec.describe Payments::Mpesa::C2B do
   let(:short_code) { Payments[:mpesa].shortcode }
   let(:confirmation_url) { "https://example.com/mpesa/confirm" }
   let(:validation_url) { "https://example.com/mpesa/validate" }
-  let(:phone_number) { "+254712345678" }
+  let(:phone_number) { "254712345678" }
 
   describe ".register_urls" do
     context "success" do
@@ -24,15 +24,45 @@ RSpec.describe Payments::Mpesa::C2B do
       it_behaves_like "a successful response", :c2b_register
     end
 
-    context "missing confirmation_url" do
-      it "raises ArgumentError" do
+    context "validation errors" do
+      it "raises ArgumentError when short_code is blank" do
+        expect {
+          described_class.register_urls(
+            short_code: "",
+            confirmation_url:,
+            validation_url:
+          )
+        }.to raise_error(ArgumentError, /short_code cannot be blank/)
+      end
+
+      it "raises ArgumentError when confirmation_url is blank" do
+        expect {
+          described_class.register_urls(
+            short_code:,
+            confirmation_url: "",
+            validation_url:
+          )
+        }.to raise_error(ArgumentError, /confirmation_url cannot be blank/)
+      end
+
+      it "raises ArgumentError when validation_url is blank" do
+        expect {
+          described_class.register_urls(
+            short_code:,
+            confirmation_url:,
+            validation_url: ""
+          )
+        }.to raise_error(ArgumentError, /validation_url cannot be blank/)
+      end
+
+      it "raises ArgumentError when confirmation_url is nil" do
         expect {
           described_class.register_urls(
             short_code:,
             confirmation_url: nil,
             validation_url:
           )
-        }.to raise_error(ArgumentError)
+        }.to raise_error(ArgumentError, /confirmation_url cannot be blank/)
       end
     end
   end
@@ -66,6 +96,38 @@ RSpec.describe Payments::Mpesa::C2B do
         expect {
           described_class.simulate(phone_number:, amount: 10, reference: "BAD")
         }.to raise_error(Faraday::ParsingError)
+      end
+    end
+
+    context "validation errors" do
+      it "raises ArgumentError when phone_number is invalid" do
+        expect {
+          described_class.simulate(phone_number: "0712345678", amount: 10, reference: "TEST")
+        }.to raise_error(ArgumentError, /phone_number must be a valid Kenyan format/)
+      end
+
+      it "raises ArgumentError when amount is zero" do
+        expect {
+          described_class.simulate(phone_number:, amount: 0, reference: "TEST")
+        }.to raise_error(ArgumentError, /amount must be a positive number/)
+      end
+
+      it "raises ArgumentError when amount is negative" do
+        expect {
+          described_class.simulate(phone_number:, amount: -10, reference: "TEST")
+        }.to raise_error(ArgumentError, /amount must be a positive number/)
+      end
+
+      it "raises ArgumentError when reference is blank" do
+        expect {
+          described_class.simulate(phone_number:, amount: 10, reference: "")
+        }.to raise_error(ArgumentError, /reference cannot be blank/)
+      end
+
+      it "raises ArgumentError when reference is nil" do
+        expect {
+          described_class.simulate(phone_number:, amount: 10, reference: nil)
+        }.to raise_error(ArgumentError, /reference cannot be blank/)
       end
     end
   end

@@ -9,9 +9,7 @@ module Payments
 
           class << self
             def call(phone_number:, amount:, **opts)
-              config = Payments[:mpesa]
-
-              raise ArgumentError, "Missing `result_url` in Mpesa extras config" unless config.extras[:result_url]
+              validate_for(:b2c, phone_number:, amount:)
 
               payload = {
                 InitiatorName: config.initiator_name,
