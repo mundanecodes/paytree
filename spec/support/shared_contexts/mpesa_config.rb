@@ -6,6 +6,9 @@ RSpec.shared_context "Mpesa config" do
       headers: {"Content-Type" => "application/json"}
     )
 
+    Payments::Mpesa::Adapters::Daraja::Base.instance_variable_set(:@token, nil)
+    Payments::Mpesa::Adapters::Daraja::Base.instance_variable_set(:@token_expiry, nil)
+
     Payments.configure(:mpesa, Payments::Configs::Mpesa) do |config|
       config[:key] = "TEST_KEY"
       config[:secret] = "TEST_SECRET"
