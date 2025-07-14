@@ -73,3 +73,27 @@ else
   puts "Failed to initiate B2C payment: #{response.message}"
 end
 ```
+
+## C2B (Customer -> Business)
+
+### 1  Register Validation & Confirmation URLs
+
+```ruby
+Payments::Mpesa::C2B.register_urls(
+  short_code:       Payments[:mpesa].shortcode,
+  confirmation_url: "https://your-app.com/mpesa/confirm",
+  validation_url:   "https://your-app.com/mpesa/validate"
+)
+
+response = Payments::Mpesa::C2B.simulate(
+  phone_number: "+254712345678",
+  amount: 75,
+  reference: "INV-42"
+)
+
+if response.success?
+  puts "Simulation OK: #{response.data["CustomerMessage"]}"
+else
+  puts "Simulation failed: #{response.message}"
+end
+```

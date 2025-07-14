@@ -18,7 +18,7 @@ RSpec.describe Payments::Mpesa::StkQuery do
       described_class.call(checkout_request_id:)
     end
 
-    it_behaves_like "a successful response", :stk_query
+    it_behaves_like "a successful response", :stk_query, id_key: "CheckoutRequestID"
   end
 
   context "malformed JSON response" do
