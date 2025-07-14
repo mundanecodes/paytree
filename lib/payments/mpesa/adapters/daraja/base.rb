@@ -27,6 +27,20 @@ module Payments
               }
             end
 
+            def encrypt_credential(config)
+              cert_path = config.extras[:cert_path]
+              raise ArgumentError, "Missing `cert_path` in Mpesa extras config" unless cert_path && File.exist?(cert_path)
+
+              begin
+                certificate = OpenSSL::X509::Certificate.new(File.read(cert_path))
+                public_key = certificate.public_key
+                encrypted = public_key.public_encrypt(config.initiator_password)
+                Base64.strict_encode64(encrypted)
+              rescue OpenSSL::OpenSSLError => e
+                raise "Failed to encrypt initiator password using certificate at #{cert_path}: #{e.message}"
+              end
+            end
+
             private
 
             def fetch_token

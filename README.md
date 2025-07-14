@@ -97,3 +97,28 @@ else
   puts "Simulation failed: #{response.message}"
 end
 ```
+
+## B2B Payment
+
+Send funds from one PayBill or BuyGoods shortcode to another.
+
+### Example
+
+```ruby
+response = Payments::Mpesa::B2B.call(
+  short_code: "600999",                # Sender shortcode
+  receiver_shortcode: "600111",        # Receiver shortcode
+  amount: 1500,
+  account_reference: "UTIL-APRIL",     # Appears in recipient's statement
+
+  # Optional
+  remarks: "Utility Settlement",
+  command_id: "BusinessPayBill"        # or "BusinessBuyGoods"
+)
+
+if response.success?
+  puts "B2B payment accepted: #{response.message}"
+else
+  puts "B2B failed: #{response.message}"
+end
+```
