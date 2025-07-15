@@ -9,19 +9,22 @@ module Payments
 
           class << self
             def call(checkout_request_id:)
-              config = Payments[:mpesa]
-              timestamp = Time.now.strftime("%Y%m%d%H%M%S")
-              password = Base64.strict_encode64("#{config.shortcode}#{config.passkey}#{timestamp}")
+              with_error_handling(context: :stk_query) do
+                config = self.config
 
-              payload = {
-                BusinessShortCode: config.shortcode,
-                Password: password,
-                Timestamp: timestamp,
-                CheckoutRequestID: checkout_request_id
-              }
+                timestamp = Time.now.strftime("%Y%m%d%H%M%S")
+                password = Base64.strict_encode64("#{config.shortcode}#{config.passkey}#{timestamp}")
 
-              response = connection.post(ENDPOINT, payload.to_json, headers)
-              build_response(response)
+                payload = {
+                  BusinessShortCode: config.shortcode,
+                  Password: password,
+                  Timestamp: timestamp,
+                  CheckoutRequestID: checkout_request_id
+                }
+
+                response = connection.post(ENDPOINT, payload.to_json, headers)
+                build_response(response)
+              end
             end
 
             private

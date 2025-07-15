@@ -8,8 +8,10 @@ module Payments
       :adapter,
       :initiator_name,
       :initiator_password,
-      :sandbox,       # true/false for environment
-      :extras         # optional hash for additional settings
+      :sandbox,
+      :extras,
+      :on_success,
+      :on_error
     ) do
       def base_url
         sandbox ? "https://sandbox.safaricom.co.ke" : "https://api.safaricom.co.ke"

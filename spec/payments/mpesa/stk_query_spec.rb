@@ -22,16 +22,16 @@ RSpec.describe Payments::Mpesa::StkQuery do
   end
 
   context "malformed JSON response" do
-    it "raises Faraday::ParsingError on malformed JSON response" do
+    subject do
       stub_request(:post, %r{/stkpushquery}).to_return(
         status: 200,
         body: "not-a-valid-json",
         headers: {"Content-Type" => "application/json"}
       )
 
-      expect {
-        described_class.call(checkout_request_id: "ws_CO_123456789")
-      }.to raise_error(Faraday::ParsingError)
+      described_class.call(checkout_request_id:)
     end
+
+    it_behaves_like "malformed mpesa response"
   end
 end

@@ -1,3 +1,5 @@
+require "spec_helper"
+
 RSpec.describe Payments::Mpesa::B2C do
   include_context "Mpesa config"
 
@@ -27,10 +29,7 @@ RSpec.describe Payments::Mpesa::B2C do
       )
     end
 
-    it "returns a success response" do
-      expect(subject).to be_success
-      expect(subject.data["ResponseDescription"]).to match(/Accept/)
-    end
+    it_behaves_like "a successful mpesa payment"
   end
 
   context "API error" do
@@ -48,115 +47,45 @@ RSpec.describe Payments::Mpesa::B2C do
       )
     end
 
-    it "marks the response as error" do
-      expect(subject).to be_error
-      expect(subject.message).to eq("Invalid initiator credentials")
-    end
+    it_behaves_like "a failed mpesa API call"
   end
 
   context "malformed JSON response" do
-    it "raises JSON::ParserError or Faraday::ParsingError" do
+    subject do
       stub_request(:post, %r{/b2c/v1/paymentrequest}).to_return(
         status: 200,
         body: "<<<NOT JSON>>>",
         headers: {"Content-Type" => "application/json"}
       )
 
-      expect {
-        described_class.call(phone_number:, amount: 100, reference: "MALFORMED")
-      }.to raise_error(Faraday::ParsingError)
+      described_class.call(phone_number:, amount: 100, reference: "MALFORMED")
     end
+
+    it_behaves_like "malformed mpesa response"
   end
 
   context "missing cert_path" do
-    before do
-      config = Payments[:mpesa]
-      config.extras.delete(:cert_path)
+    subject do
+      Payments[:mpesa].extras.delete(:cert_path)
+
+      described_class.call(phone_number:, amount: 1000, remarks: "Test")
     end
 
-    it "raises ArgumentError" do
-      expect {
-        described_class.call(phone_number:, amount: 1000, remarks: "Test")
-      }.to raise_error(ArgumentError, /cert_path/)
-    end
+    it_behaves_like "mpesa certificate validation"
   end
 
   context "missing result_url" do
-    before do
-      config = Payments[:mpesa]
-      config.extras.delete(:result_url)
+    subject do
+      Payments[:mpesa].extras.delete(:result_url)
+
+      described_class.call(phone_number:, amount: 1000, remarks: "Test")
     end
 
-    it "raises ArgumentError" do
-      expect {
-        described_class.call(phone_number:, amount: 1000, remarks: "Test")
-      }.to raise_error(ArgumentError, /result_url/)
-    end
+    it_behaves_like "mpesa config validation", "result_url"
   end
 
   describe "parameter validation" do
-    context "phone_number validation" do
-      it "raises ArgumentError when phone_number is blank" do
-        expect {
-          described_class.call(phone_number: "", amount: 100)
-        }.to raise_error(ArgumentError, /phone_number must be a valid Kenyan format/)
-      end
-
-      it "raises ArgumentError when phone_number is nil" do
-        expect {
-          described_class.call(phone_number: nil, amount: 100)
-        }.to raise_error(ArgumentError, /phone_number must be a valid Kenyan format/)
-      end
-
-      it "raises ArgumentError when phone_number is invalid format" do
-        expect {
-          described_class.call(phone_number: "0712345678", amount: 100)
-        }.to raise_error(ArgumentError, /phone_number must be a valid Kenyan format/)
-      end
-
-      it "raises ArgumentError when phone_number is too short" do
-        expect {
-          described_class.call(phone_number: "25471234567", amount: 100)
-        }.to raise_error(ArgumentError, /phone_number must be a valid Kenyan format/)
-      end
-
-      it "raises ArgumentError when phone_number is too long" do
-        expect {
-          described_class.call(phone_number: "2547123456789", amount: 100)
-        }.to raise_error(ArgumentError, /phone_number must be a valid Kenyan format/)
-      end
-
-      it "accepts valid phone_number format" do
-        stub_request(:post, %r{/b2c/v1/paymentrequest}).to_return(
-          status: 200,
-          body: success_body.to_json,
-          headers: {"Content-Type" => "application/json"}
-        )
-
-        expect {
-          described_class.call(phone_number: "254712345678", amount: 100)
-        }.not_to raise_error
-      end
-    end
-
-    context "amount validation" do
-      it "raises ArgumentError when amount is zero" do
-        expect {
-          described_class.call(phone_number:, amount: 0)
-        }.to raise_error(ArgumentError, /amount must be a positive number/)
-      end
-
-      it "raises ArgumentError when amount is negative" do
-        expect {
-          described_class.call(phone_number:, amount: -10)
-        }.to raise_error(ArgumentError, /amount must be a positive number/)
-      end
-
-      it "raises ArgumentError when amount is not numeric" do
-        expect {
-          described_class.call(phone_number:, amount: "invalid")
-        }.to raise_error(ArgumentError, /amount must be a positive number/)
-      end
-    end
+    it_behaves_like "a valid mpesa phone_number"
+    it_behaves_like "a valid mpesa amount"
   end
 end

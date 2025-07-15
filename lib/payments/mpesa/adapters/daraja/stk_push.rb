@@ -9,26 +9,30 @@ module Payments
 
           class << self
             def call(phone_number:, amount:, reference:)
-              validate_for(:stk_push, phone_number:, amount:, reference:)
-              timestamp = Time.now.strftime("%Y%m%d%H%M%S")
-              password = Base64.strict_encode64("#{config.shortcode}#{config.passkey}#{timestamp}")
+              with_error_handling(context: :stk_push) do
+                config = self.config
+                validate_for(:stk_push, phone_number:, amount:, reference:)
 
-              payload = {
-                BusinessShortCode: config.shortcode,
-                Password: password,
-                Timestamp: timestamp,
-                TransactionType: "CustomerPayBillOnline",
-                Amount: amount,
-                PartyA: phone_number,
-                PartyB: config.shortcode,
-                PhoneNumber: phone_number,
-                CallBackURL: config.extras[:callback_url],
-                AccountReference: reference,
-                TransactionDesc: reference
-              }
+                timestamp = Time.now.strftime("%Y%m%d%H%M%S")
+                password = Base64.strict_encode64("#{config.shortcode}#{config.passkey}#{timestamp}")
 
-              response = connection.post(ENDPOINT, payload.to_json, headers)
-              build_response(response)
+                payload = {
+                  BusinessShortCode: config.shortcode,
+                  Password: password,
+                  Timestamp: timestamp,
+                  TransactionType: "CustomerPayBillOnline",
+                  Amount: amount,
+                  PartyA: phone_number,
+                  PartyB: config.shortcode,
+                  PhoneNumber: phone_number,
+                  CallBackURL: config.extras[:callback_url],
+                  AccountReference: reference,
+                  TransactionDesc: reference
+                }
+
+                response = connection.post(ENDPOINT, payload.to_json, headers)
+                build_response(response)
+              end
             end
 
             private

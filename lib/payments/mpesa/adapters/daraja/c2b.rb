@@ -10,32 +10,37 @@ module Payments
 
           class << self
             def register_urls(short_code:, confirmation_url:, validation_url:)
-              validate_for(:c2b_register, short_code:, confirmation_url:, validation_url:)
+              with_error_handling(context: :c2b_register) do
+                validate_for(:c2b_register, short_code:, confirmation_url:, validation_url:)
 
-              payload = {
-                ShortCode: short_code,
-                ResponseType: "Completed",
-                ConfirmationURL: confirmation_url,
-                ValidationURL: validation_url
-              }
+                payload = {
+                  ShortCode: short_code,
+                  ResponseType: "Completed",
+                  ConfirmationURL: confirmation_url,
+                  ValidationURL: validation_url
+                }
 
-              response = connection.post(REGISTER_ENDPOINT, payload.to_json, headers)
-              build_response(response, :c2b_register)
+                response = connection.post(REGISTER_ENDPOINT, payload.to_json, headers)
+                build_response(response, :c2b_register)
+              end
             end
 
             def simulate(phone_number:, amount:, reference:)
-              validate_for(:c2b_simulate, phone_number:, amount:, reference:)
+              with_error_handling(context: :c2b_simulate) do
+                config = self.config
+                validate_for(:c2b_simulate, phone_number:, amount:, reference:)
 
-              payload = {
-                ShortCode: config.shortcode,
-                CommandID: "CustomerPayBillOnline",
-                Amount: amount,
-                Msisdn: phone_number,
-                BillRefNumber: reference
-              }
+                payload = {
+                  ShortCode: config.shortcode,
+                  CommandID: "CustomerPayBillOnline",
+                  Amount: amount,
+                  Msisdn: phone_number,
+                  BillRefNumber: reference
+                }
 
-              response = connection.post(SIMULATE_ENDPOINT, payload.to_json, headers)
-              build_response(response, :c2b_simulate)
+                response = connection.post(SIMULATE_ENDPOINT, payload.to_json, headers)
+                build_response(response, :c2b_simulate)
+              end
             end
 
             private

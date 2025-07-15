@@ -9,23 +9,26 @@ module Payments
 
           class << self
             def call(phone_number:, amount:, **opts)
-              validate_for(:b2c, phone_number:, amount:)
+              with_error_handling(context: :b2c) do
+                config = self.config
+                validate_for(:b2c, phone_number:, amount:)
 
-              payload = {
-                InitiatorName: config.initiator_name,
-                SecurityCredential: encrypt_credential(config),
-                Amount: amount,
-                PartyA: config.shortcode,
-                PartyB: phone_number,
-                QueueTimeOutURL: config.extras[:timeout_url],
-                ResultURL: config.extras[:result_url],
-                CommandID: opts[:command_id] || "BusinessPayment",
-                Remarks: opts[:remarks],
-                Occasion: opts[:occasion]
-              }.compact
+                payload = {
+                  InitiatorName: config.initiator_name,
+                  SecurityCredential: encrypt_credential(config),
+                  Amount: amount,
+                  PartyA: config.shortcode,
+                  PartyB: phone_number,
+                  QueueTimeOutURL: config.extras[:timeout_url],
+                  ResultURL: config.extras[:result_url],
+                  CommandID: opts[:command_id] || "BusinessPayment",
+                  Remarks: opts[:remarks],
+                  Occasion: opts[:occasion]
+                }.compact
 
-              response = connection.post(ENDPOINT, payload.to_json, headers)
-              build_response(response)
+                response = connection.post(ENDPOINT, payload.to_json, headers)
+                build_response(response)
+              end
             end
 
             private

@@ -1,4 +1,5 @@
 require "base64"
+require_relative "../../../utils/error_handling"
 
 module Payments
   module Mpesa
@@ -6,6 +7,8 @@ module Payments
       module Daraja
         class Base
           class << self
+            include Payments::Utils::ErrorHandling
+
             def config = Payments[:mpesa]
 
             def connection
@@ -16,10 +19,7 @@ module Payments
             end
 
             def headers
-              {
-                "Authorization" => "Bearer #{token}",
-                "Content-Type" => "application/json"
-              }
+              {"Authorization" => "Bearer #{token}", "Content-Type" => "application/json"}
             end
 
             def token
@@ -30,41 +30,49 @@ module Payments
 
             def encrypt_credential(config)
               cert_path = config.extras[:cert_path]
-              raise ArgumentError, "Missing `cert_path` in Mpesa extras config" unless cert_path && File.exist?(cert_path)
-
-              begin
-                certificate = OpenSSL::X509::Certificate.new(File.read(cert_path))
-                public_key = certificate.public_key
-                encrypted = public_key.public_encrypt(config.initiator_password)
-                Base64.strict_encode64(encrypted)
-              rescue OpenSSL::OpenSSLError => e
-                raise "Failed to encrypt initiator password using certificate at #{cert_path}: #{e.message}"
+              unless cert_path && File.exist?(cert_path)
+                raise Payments::Errors::MpesaCertMissing,
+                  "Missing or unreadable certificate at #{cert_path}"
               end
+
+              certificate = OpenSSL::X509::Certificate.new(File.read(cert_path))
+              encrypted = certificate.public_key.public_encrypt(config.initiator_password)
+              Base64.strict_encode64(encrypted)
+            rescue OpenSSL::OpenSSLError => e
+              raise Payments::Errors::MpesaCertMissing,
+                "Failed to encrypt password with certificate #{cert_path}: #{e.message}"
             end
 
+            # ------------------------------------------------------------------
+            # Validation rules
+            # ------------------------------------------------------------------
             VALIDATIONS = {
-              c2b_register: {required: [:short_code, :confirmation_url, :validation_url]},
-              c2b_simulate: {required: [:phone_number, :amount, :reference]},
-              stk_push: {required: [:phone_number, :amount, :reference]},
-              b2c: {required: [:phone_number, :amount], config: [:result_url]},
+              c2b_register: {required: %i[short_code confirmation_url validation_url]},
+              c2b_simulate: {required: %i[phone_number amount reference]},
+              stk_push: {required: %i[phone_number amount reference]},
+              b2c: {required: %i[phone_number amount], config: %i[result_url]},
               b2b: {
-                required: [:short_code, :receiver_shortcode, :account_reference, :amount],
-                config: [:result_url, :timeout_url],
+                required: %i[short_code receiver_shortcode account_reference amount],
+                config: %i[result_url timeout_url],
                 command_id: %w[BusinessPayBill BusinessBuyGoods]
               }
             }.freeze
 
             def validate_for(operation, params = {})
-              rules = VALIDATIONS[operation]
-              raise ArgumentError, "Unknown operation: #{operation}" unless rules
+              rules = VALIDATIONS[operation] ||
+                raise(Payments::Errors::UnsupportedOperation, "Unknown operation: #{operation}")
 
-              Array(rules[:required]).each { validate_field(it, params[it]) }
-              Array(rules[:config]).each { raise ArgumentError, "Missing `#{it}` in Mpesa extras config" unless config.extras[it] }
+              Array(rules[:required]).each { |field| validate_field(field, params[field]) }
 
-              if rules[:command_id] && params[:command_id]
-                unless rules[:command_id].include?(params[:command_id])
-                  raise ArgumentError, "command_id must be one of: #{rules[:command_id].join(", ")}"
+              Array(rules[:config]).each do |key|
+                unless config.extras[key]
+                  raise Payments::Errors::ConfigurationError, "Missing `#{key}` in Mpesa extras config"
                 end
+              end
+
+              if (allowed = rules[:command_id]) && !allowed.include?(params[:command_id])
+                raise Payments::Errors::ValidationError,
+                  "command_id must be one of: #{allowed.join(", ")}"
               end
             end
 
@@ -72,16 +80,17 @@ module Payments
               case field
               when :amount
                 unless value.is_a?(Numeric) && value >= 1
-                  raise ArgumentError, "amount must be a positive number"
+                  raise Payments::Errors::ValidationError,
+                    "amount must be a positive number"
                 end
               when :phone_number
-                unless value.to_s.match?(/^254\d{9}$/)
-                  raise ArgumentError, "phone_number must be a valid Kenyan format (254XXXXXXXXX)"
+                phone_regex = /^254\d{9}$/
+                unless value.to_s.match?(phone_regex)
+                  raise Payments::Errors::ValidationError,
+                    "phone_number must be a valid Kenyan format (254XXXXXXXXX)"
                 end
               else
-                if value.to_s.strip.empty?
-                  raise ArgumentError, "#{field} cannot be blank"
-                end
+                raise Payments::Errors::ValidationError, "#{field} cannot be blank" if value.to_s.strip.empty?
               end
             end
 
@@ -90,14 +99,16 @@ module Payments
             def fetch_token
               cred = Base64.strict_encode64("#{config.key}:#{config.secret}")
 
-              resp = connection.get("/oauth/v1/generate", grant_type: "client_credentials") do |r|
+              response = connection.get("/oauth/v1/generate", grant_type: "client_credentials") do |r|
                 r.headers["Authorization"] = "Basic #{cred}"
               end
 
-              data = resp.body
+              data = response.body
               @token = data["access_token"]
               @token_expiry = Time.now + data["expires_in"].to_i
               @token
+            rescue Faraday::Error => e
+              raise Payments::Errors::MpesaTokenError, "Unable to fetch token: #{e.message}"
             end
 
             def token_valid?
