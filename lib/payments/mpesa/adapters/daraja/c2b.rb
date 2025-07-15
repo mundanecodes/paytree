@@ -20,14 +20,12 @@ module Payments
                   ValidationURL: validation_url
                 }
 
-                response = connection.post(REGISTER_ENDPOINT, payload.to_json, headers)
-                build_response(response, :c2b_register)
+                post_to_mpesa(:c2b_register, REGISTER_ENDPOINT, payload)
               end
             end
 
             def simulate(phone_number:, amount:, reference:)
               with_error_handling(context: :c2b_simulate) do
-                config = self.config
                 validate_for(:c2b_simulate, phone_number:, amount:, reference:)
 
                 payload = {
@@ -38,25 +36,8 @@ module Payments
                   BillRefNumber: reference
                 }
 
-                response = connection.post(SIMULATE_ENDPOINT, payload.to_json, headers)
-                build_response(response, :c2b_simulate)
+                post_to_mpesa(:c2b_simulate, SIMULATE_ENDPOINT, payload)
               end
-            end
-
-            private
-
-            def build_response(response, operation)
-              parsed = response.body
-
-              Payments::Response.new(
-                provider: :mpesa,
-                operation:,
-                status: response.success? ? :success : :error,
-                message: parsed["ResponseDescription"] || parsed["errorMessage"],
-                code: parsed["ResponseCode"] || parsed["errorCode"],
-                data: parsed,
-                raw_response: response
-              )
             end
           end
         end

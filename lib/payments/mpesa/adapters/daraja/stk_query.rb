@@ -22,25 +22,8 @@ module Payments
                   CheckoutRequestID: checkout_request_id
                 }
 
-                response = connection.post(ENDPOINT, payload.to_json, headers)
-                build_response(response)
+                post_to_mpesa(:stk_query, ENDPOINT, payload)
               end
-            end
-
-            private
-
-            def build_response(response)
-              parsed = response.body
-
-              Payments::Response.new(
-                provider: :mpesa,
-                operation: :stk_query,
-                status: response.success? ? :success : :error,
-                message: parsed["ResultDesc"] || parsed["errorMessage"],
-                code: parsed["ResultCode"] || parsed["errorCode"],
-                data: parsed,
-                raw_response: response
-              )
             end
           end
         end

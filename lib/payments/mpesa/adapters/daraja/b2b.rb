@@ -28,25 +28,8 @@ module Payments
                   ResultURL: config.extras[:result_url]
                 }.compact
 
-                response = connection.post(ENDPOINT, payload.to_json, headers)
-                build_response(response)
+                post_to_mpesa(:b2b, ENDPOINT, payload)
               end
-            end
-
-            private
-
-            def build_response(response)
-              parsed = response.body
-
-              Payments::Response.new(
-                provider: :mpesa,
-                operation: :b2b,
-                status: response.success? ? :success : :error,
-                message: parsed["ResponseDescription"] || parsed["errorMessage"],
-                code: parsed["ResponseCode"] || parsed["errorCode"],
-                data: parsed,
-                raw_response: response
-              )
             end
           end
         end

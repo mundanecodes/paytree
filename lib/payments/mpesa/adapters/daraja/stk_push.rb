@@ -10,7 +10,6 @@ module Payments
           class << self
             def call(phone_number:, amount:, reference:)
               with_error_handling(context: :stk_push) do
-                config = self.config
                 validate_for(:stk_push, phone_number:, amount:, reference:)
 
                 timestamp = Time.now.strftime("%Y%m%d%H%M%S")
@@ -30,25 +29,8 @@ module Payments
                   TransactionDesc: reference
                 }
 
-                response = connection.post(ENDPOINT, payload.to_json, headers)
-                build_response(response)
+                post_to_mpesa(:stk_push, ENDPOINT, payload)
               end
-            end
-
-            private
-
-            def build_response(response)
-              parsed = response.body
-
-              Payments::Response.new(
-                provider: :mpesa,
-                operation: :stk_push,
-                status: response.success? ? :success : :error,
-                message: parsed["ResponseDescription"] || parsed["errorMessage"],
-                code: parsed["ResponseCode"] || parsed["errorCode"],
-                data: parsed,
-                raw_response: response
-              )
             end
           end
         end

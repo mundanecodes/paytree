@@ -10,7 +10,6 @@ module Payments
           class << self
             def call(phone_number:, amount:, **opts)
               with_error_handling(context: :b2c) do
-                config = self.config
                 validate_for(:b2c, phone_number:, amount:)
 
                 payload = {
@@ -26,25 +25,8 @@ module Payments
                   Occasion: opts[:occasion]
                 }.compact
 
-                response = connection.post(ENDPOINT, payload.to_json, headers)
-                build_response(response)
+                post_to_mpesa(:b2c, ENDPOINT, payload)
               end
-            end
-
-            private
-
-            def build_response(response)
-              parsed = response.body
-
-              Payments::Response.new(
-                provider: :mpesa,
-                operation: :b2c,
-                status: response.success? ? :success : :error,
-                message: parsed["ResponseDescription"] || parsed["errorMessage"],
-                code: parsed["ResponseCode"] || parsed["errorCode"],
-                data: parsed,
-                raw_response: response
-              )
             end
           end
         end

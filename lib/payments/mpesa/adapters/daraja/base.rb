@@ -1,4 +1,5 @@
 require "base64"
+require_relative "response_helpers"
 require_relative "../../../utils/error_handling"
 
 module Payments
@@ -8,6 +9,7 @@ module Payments
         class Base
           class << self
             include Payments::Utils::ErrorHandling
+            include Payments::Mpesa::Adapters::Daraja::ResponseHelpers
 
             def config = Payments[:mpesa]
 
@@ -16,6 +18,13 @@ module Payments
                 conn.request :json
                 conn.response :json, content_type: "application/json"
               end
+            end
+
+            def post_to_mpesa(operation, endpoint, payload)
+              build_response(
+                connection.post(endpoint, payload.to_json, headers),
+                operation
+              )
             end
 
             def headers
