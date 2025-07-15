@@ -4,19 +4,20 @@ RSpec.describe Payments::ConfigurationRegistry do
   let(:registry) { described_class.new }
   let(:mpesa_class) { Payments::Configs::Mpesa }
 
-  # Simulate a user-defined config struct for Airtel
+  # Simulate a user-defined config class for Airtel
   let(:airtel_class) do
-    Data.define(:client_id, :client_secret, :region)
+    Class.new do
+      attr_accessor :client_id, :client_secret, :region
+    end
   end
 
-  it "configures Mpesa with immutable settings" do
+  it "configures Mpesa with correct settings" do
     registry.configure(:mpesa, mpesa_class) do |config|
-      config[:extras] = {}
-      config[:key] = "abc"
-      config[:secret] = "xyz"
-      config[:sandbox] = true
-      config[:shortcode] = 123456
-      config[:passkey] = "passkey12345"
+      config.key = "abc"
+      config.secret = "xyz"
+      config.sandbox = true
+      config.shortcode = 123456
+      config.passkey = "passkey12345"
     end
 
     config = registry[:mpesa]
@@ -31,9 +32,9 @@ RSpec.describe Payments::ConfigurationRegistry do
 
   it "allows adding Airtel provider dynamically" do
     registry.configure(:airtel, airtel_class) do |config|
-      config[:client_id] = "aid"
-      config[:client_secret] = "asecret"
-      config[:region] = "ke"
+      config.client_id = "aid"
+      config.client_secret = "asecret"
+      config.region = "ke"
     end
 
     airtel = registry[:airtel]

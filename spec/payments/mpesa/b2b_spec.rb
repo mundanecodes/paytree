@@ -52,7 +52,7 @@ RSpec.describe Payments::Mpesa::B2B do
 
   context "missing cert file" do
     subject do
-      allow(File).to receive(:exist?).and_return(false)
+      Payments[:mpesa].extras.delete(:cert_path)
 
       described_class.call(
         short_code:,
