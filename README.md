@@ -1,6 +1,6 @@
 # Payments
 
-A simple, Rails-optional Ruby gem for mobile money integrations. Currently supports Kenya's M-Pesa via the Daraja API with plans for additional providers.
+A simple, highly opinionated Rails-optional Ruby gem for mobile money integrations. Currently supports Kenya's M-Pesa via the Daraja API with plans for additional providers.
 
 ## Features
 
