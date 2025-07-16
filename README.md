@@ -4,12 +4,12 @@ A simple, Rails-optional Ruby gem for mobile money integrations. Currently suppo
 
 ## Features
 
-- 🚀 **Simple & Minimal**: Clean API with sensible defaults
-- 🔧 **Convention over Configuration**: Multiple setup patterns for different needs  
-- 🛡️ **Safe Defaults**: Sandbox mode, proper timeouts, comprehensive error handling
-- 🎯 **Batteries Included**: STK Push, B2C, B2B, C2B operations out of the box
-- 🔐 **Security First**: Environment-based configuration, no hardcoded secrets
-- 🪝 **Hook System**: Built-in success/error callbacks for monitoring and analytics
+- **Simple & Minimal**: Clean API with sensible defaults
+- **Convention over Configuration**: Multiple setup patterns for different needs  
+- **Safe Defaults**: Sandbox mode, proper timeouts, comprehensive error handling
+- **Batteries Included**: STK Push, B2C, B2B, C2B operations out of the box
+- **Security First**: Environment-based configuration, no hardcoded secrets
+- **Hook System**: Built-in success/error callbacks for monitoring and analytics
 
 ## Quick Start
 
