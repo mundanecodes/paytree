@@ -1,65 +1,179 @@
-## STK Push
+# Payments
+
+A simple, Rails-optional Ruby gem for mobile money integrations. Currently supports Kenya's M-Pesa via the Daraja API with plans for additional providers.
+
+## Features
+
+- 🚀 **Simple & Minimal**: Clean API with sensible defaults
+- 🔧 **Convention over Configuration**: Multiple setup patterns for different needs  
+- 🛡️ **Safe Defaults**: Sandbox mode, proper timeouts, comprehensive error handling
+- 🎯 **Batteries Included**: STK Push, B2C, B2B, C2B operations out of the box
+- 🔐 **Security First**: Environment-based configuration, no hardcoded secrets
+- 🪝 **Hook System**: Built-in success/error callbacks for monitoring and analytics
+
+## Quick Start
+
+### 1. Installation
+
+Add to your Gemfile:
+
+```ruby
+gem 'payments'
+```
+
+Or install directly:
+
+```bash
+gem install payments
+```
+
+### 2. Get M-Pesa API Credentials
+
+1. Register at [Safaricom Developer Portal](https://developer.safaricom.co.ke/)
+2. Create a new app to get your Consumer Key and Secret
+3. For testing, use the sandbox environment
+
+### 3. Basic Setup
+
+```ruby
+# For quick testing (uses sandbox by default)
+Payments.configure_mpesa_sandbox(
+  key: "your_consumer_key",
+  secret: "your_consumer_secret", 
+  passkey: "your_passkey"
+)
+
+# Make your first payment request
+response = Payments::Mpesa::StkPush.call(
+  phone_number: "254712345678",
+  amount: 100,
+  reference: "ORDER-001"
+)
+
+puts response.success? ? "Payment initiated!" : "Error: #{response.message}"
+```
+
+## Configuration
+
+Choose the approach that fits your application:
+
+### Option 1: Environment Variables (Recommended for Production)
+
+Set these environment variables:
+
+```bash
+MPESA_CONSUMER_KEY=your_key
+MPESA_CONSUMER_SECRET=your_secret
+MPESA_SHORTCODE=174379
+MPESA_PASSKEY=your_passkey
+MPESA_SANDBOX=false
+MPESA_CALLBACK_URL=https://your-app.com/mpesa/callback
+```
+
+Then in your app:
+
+```ruby
+# Auto-configure from environment
+Payments.auto_configure_mpesa!
+```
+
+### Option 2: Hash Configuration
+
+```ruby
+# Hash-based configuration
+Payments.configure_mpesa(
+  key: "YOUR_CONSUMER_KEY",
+  secret: "YOUR_CONSUMER_SECRET", 
+  shortcode: "174379",
+  passkey: "YOUR_PASSKEY",
+  sandbox: false,  # Set to true for testing
+  extras: {
+    callback_url: "https://your-app.com/mpesa/callback"
+  }
+)
+```
+
+### Option 3: Preset Configurations
+
+```ruby
+# For development/testing
+Payments.configure_mpesa_sandbox(
+  key: "YOUR_CONSUMER_KEY",
+  secret: "YOUR_CONSUMER_SECRET",
+  passkey: "YOUR_PASSKEY"
+)
+
+# For production
+Payments.configure_mpesa_production(
+  key: "YOUR_CONSUMER_KEY",
+  secret: "YOUR_CONSUMER_SECRET",
+  shortcode: "174379",
+  passkey: "YOUR_PASSKEY"
+)
+```
+
+## Usage Examples
+
+### STK Push (Customer Payment)
 
 Initiate an M-Pesa STK Push (Lipa na M-Pesa Online) request.
 
-### Configure once
+#### Basic STK Push
 
 ```ruby
-Payments.configure(:mpesa, Payments::Configs::Mpesa) do |config|
-  config[:key]       = "YOUR_CONSUMER_KEY"
-  config[:secret]    = "YOUR_CONSUMER_SECRET"
-  config[:shortcode] = "600999"
-  config[:passkey]   = "YOUR_PASSKEY"
-  config[:sandbox]   = true
-
-  # Optional extras
-  config[:extras] = {
-    callback_url: "https://your-app.com/mpesa/callback"
-  }
-
-  # Optional: Hook into payment events (applies to all M-Pesa operations)
-  config[:on_success] = [
-    ->(context) { Rails.logger.info "Payment succeeded: #{context[:context]}" },
-    ->(context) { MetricsCollector.increment("payment.success.#{context[:provider]}") }
-  ]
-
-  config[:on_error] = [
-    ->(context) { Rails.logger.error "Payment failed: #{context[:payload].message}" },
-    ->(context) { AlertService.notify("Payment Error", context[:payload]) }
-  ]
-end
-```
-
-#### Initiate Push
-```ruby
+# Initiate payment request - customer receives prompt on their phone
 response = Payments::Mpesa::StkPush.call(
-  phone_number: "+254712345678",
-  amount: 100,
-  reference: "INV-001"
+  phone_number: "254712345678",  # Must be in 254XXXXXXXXX format
+  amount: 100,                   # Amount in KES (Kenyan Shillings)
+  reference: "ORDER-001"         # Your internal reference
 )
 
+# Handle the response
 if response.success?
-  puts "STK Push initiated: #{response.data["CustomerMessage"]}"
+  puts "Payment request sent! Customer will receive STK prompt."
+  puts "Checkout Request ID: #{response.data['CheckoutRequestID']}"
+  
+  # Store the CheckoutRequestID to query status later
+  order.update(mpesa_checkout_id: response.data['CheckoutRequestID'])
 else
-  puts "Failed to initiate STK Push: #{response.message}"
+  puts "Payment request failed: #{response.message}"
+  Rails.logger.error "STK Push failed for order #{order.id}: #{response.message}"
 end
 ```
 
-## STK Query
+**Important**: STK Push only initiates the payment request. The customer must complete payment on their phone. Use STK Query or webhooks to get the final status.
 
-Query the status of a previously initiated STK Push.
+### STK Query (Check Payment Status)
 
-### Example
+Query the status of a previously initiated STK Push to see if the customer completed payment.
 
 ```ruby
+# Check payment status using the CheckoutRequestID from STK Push
 response = Payments::Mpesa::StkQuery.call(
   checkout_request_id: "ws_CO_123456789"
 )
 
 if response.success?
-  puts "Query successful: #{response.data["ResultDesc"]}"
+  result_code = response.data["ResultCode"]
+  
+  case result_code
+  when "0"
+    puts "Payment completed successfully!"
+    puts "Amount: #{response.data['Amount']}"
+    puts "Receipt: #{response.data['MpesaReceiptNumber']}"
+    puts "Transaction Date: #{response.data['TransactionDate']}"
+    
+    # Update your order as paid
+    order.update(status: 'paid', mpesa_receipt: response.data['MpesaReceiptNumber'])
+  when "1032"
+    puts "Payment cancelled by user"
+  when "1037" 
+    puts "Payment timed out (user didn't respond)"
+  else
+    puts "Payment failed: #{response.data['ResultDesc']}"
+  end
 else
-  puts "STK Query failed: #{response.message}"
+  puts "Query failed: #{response.message}"
 end
 ```
 
@@ -70,7 +184,7 @@ Send funds directly to a customer’s M-Pesa wallet via the B2C API.
 ### Example
 ```ruby
 response = Payments::Mpesa::B2C.call(
-  phone_number: "+254712345678",
+  phone_number: "254712345678",
   amount: 100,
   reference: "SALAARY2023JULY",
   remarks: "Monthly salary",
@@ -97,7 +211,7 @@ Payments::Mpesa::C2B.register_urls(
 )
 
 response = Payments::Mpesa::C2B.simulate(
-  phone_number: "+254712345678",
+  phone_number: "254712345678",
   amount: 75,
   reference: "INV-42"
 )
@@ -149,7 +263,7 @@ Send funds from one PayBill or BuyGoods shortcode to another.
 
 ```ruby
 response = Payments::Mpesa::B2B.call(
-  short_code: "600999",                # Sender shortcode
+  short_code: "174379",                # Sender shortcode (use your actual shortcode)
   receiver_shortcode: "600111",        # Receiver shortcode
   amount: 1500,
   account_reference: "UTIL-APRIL",     # Appears in recipient's statement
