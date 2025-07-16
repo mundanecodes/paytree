@@ -5,10 +5,13 @@ module Payments
     class Mpesa
       attr_accessor :key, :secret, :shortcode, :passkey, :adapter,
         :initiator_name, :initiator_password, :sandbox,
-        :extras, :on_success, :on_error
+        :extras, :on_success, :on_error, :timeout
 
       def initialize
         @extras = {}
+        @logger = nil
+        @mutex = Mutex.new
+        @timeout = 30      # Default 30 second timeout
       end
 
       def base_url
@@ -16,10 +19,16 @@ module Payments
       end
 
       def logger
-        @logger ||= Logger.new($stdout)
+        @mutex.synchronize do
+          @logger ||= Logger.new($stdout)
+        end
       end
 
-      attr_writer :logger
+      def logger=(new_logger)
+        @mutex.synchronize do
+          @logger = new_logger
+        end
+      end
     end
   end
 end

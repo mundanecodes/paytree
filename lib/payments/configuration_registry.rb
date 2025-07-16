@@ -2,6 +2,7 @@ module Payments
   class ConfigurationRegistry
     def initialize
       @configs = {}
+      @mutex = Mutex.new
     end
 
     def configure(provider, config_class)
@@ -9,17 +10,30 @@ module Payments
 
       config = config_class.new
       yield config if block_given?
-      @configs[provider] = config
+
+      @mutex.synchronize do
+        @configs[provider] = config
+      end
+    end
+
+    def store_config(provider, config_instance)
+      @mutex.synchronize do
+        @configs[provider] = config_instance
+      end
     end
 
     def [](provider)
-      @configs.fetch(provider) do
-        raise ArgumentError, "No config registered for provider: #{provider}"
+      @mutex.synchronize do
+        @configs.fetch(provider) do
+          raise ArgumentError, "No config registered for provider: #{provider}"
+        end
       end
     end
 
     def to_h
-      @configs.dup
+      @mutex.synchronize do
+        @configs.dup
+      end
     end
   end
 end

@@ -16,8 +16,95 @@ module Payments
       registry.configure(provider, config_class) { |hash| yield hash }
     end
 
+    def configure_mpesa(**options)
+      config = Configs::Mpesa.new
+
+      # Auto-load from environment variables if not provided
+      options = auto_load_env_vars.merge(options)
+
+      # Set configuration values
+      options.each do |key, value|
+        if config.respond_to?("#{key}=")
+          config.send("#{key}=", value)
+        elsif key == :extras
+          config.extras.merge!(value)
+        end
+      end
+
+      # Set smart defaults
+      config.sandbox = true if config.sandbox.nil?
+
+      registry.store_config(:mpesa, config)
+    end
+
+    def configure_mpesa_sandbox(**options)
+      defaults = {sandbox: true, shortcode: "174379"}
+      configure_mpesa(**defaults.merge(options))
+    end
+
+    def configure_mpesa_production(**options)
+      defaults = {sandbox: false}
+      configure_mpesa(**defaults.merge(options))
+    end
+
+    def auto_configure_mpesa!
+      env_config = auto_load_env_vars
+      raise ArgumentError, "No M-Pesa environment variables found" if env_config.empty?
+
+      config = Configs::Mpesa.new
+
+      # Set configuration values from environment only
+      env_config.each do |key, value|
+        if config.respond_to?("#{key}=")
+          config.send("#{key}=", value)
+        elsif key == :extras
+          config.extras.merge!(value)
+        end
+      end
+
+      registry.store_config(:mpesa, config)
+    end
+
     def [](provider)
       registry[provider]
+    end
+
+    private
+
+    def auto_load_env_vars
+      env_mapping = {
+        key: "MPESA_CONSUMER_KEY",
+        secret: "MPESA_CONSUMER_SECRET",
+        shortcode: "MPESA_SHORTCODE",
+        passkey: "MPESA_PASSKEY",
+        initiator_name: "MPESA_INITIATOR_NAME",
+        initiator_password: "MPESA_INITIATOR_PASSWORD",
+        sandbox: "MPESA_SANDBOX"
+      }
+
+      config = {}
+      env_mapping.each do |config_key, env_var|
+        value = ENV[env_var]
+        next unless value
+
+        # Convert sandbox to boolean
+        if config_key == :sandbox
+          value = %w[true 1 yes].include?(value.downcase)
+        end
+
+        config[config_key] = value
+      end
+
+      # Load extras from environment
+      extras = {}
+      %w[callback_url result_url timeout_url].each do |extra|
+        env_var = "MPESA_#{extra.upcase}"
+        extras[extra.to_sym] = ENV[env_var] if ENV[env_var]
+      end
+
+      config[:extras] = extras unless extras.empty?
+
+      config
     end
   end
 end

@@ -15,6 +15,9 @@ module Payments
 
             def connection
               @connection ||= Faraday.new(url: config.base_url) do |conn|
+                conn.options.timeout = config.timeout
+                conn.options.open_timeout = config.timeout / 2
+
                 conn.request :json
                 conn.response :json, content_type: "application/json"
               end
