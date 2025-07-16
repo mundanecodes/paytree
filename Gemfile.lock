@@ -149,6 +149,7 @@ GEM
 
 PLATFORMS
   x86_64-darwin-24
+  x86_64-linux
 
 DEPENDENCIES
   dotenv (~> 2.8)
