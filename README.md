@@ -16,6 +16,17 @@ Payments.configure(:mpesa, Payments::Configs::Mpesa) do |config|
   config[:extras] = {
     callback_url: "https://your-app.com/mpesa/callback"
   }
+
+  # Optional: Hook into payment events (applies to all M-Pesa operations)
+  config[:on_success] = [
+    ->(context) { Rails.logger.info "Payment succeeded: #{context[:context]}" },
+    ->(context) { MetricsCollector.increment("payment.success.#{context[:provider]}") }
+  ]
+
+  config[:on_error] = [
+    ->(context) { Rails.logger.error "Payment failed: #{context[:payload].message}" },
+    ->(context) { AlertService.notify("Payment Error", context[:payload]) }
+  ]
 end
 ```
 
@@ -97,6 +108,38 @@ else
   puts "Simulation failed: #{response.message}"
 end
 ```
+
+## Hook System
+
+The payment system provides hooks for monitoring and reacting to payment events. Hooks receive rich context including event type, payload, provider, timestamp, and custom metadata.
+
+### Available Hook Context
+
+```ruby
+{
+  event_type: :success,          # :success or :error
+  payload: response_object,      # Result or error object
+  context: "stk_push",           # Operation type that triggered the hook
+  provider: :mpesa,              # Payment provider
+  timestamp: Time.now,           # Execution time
+  # ... any additional metadata
+}
+```
+
+The `context` field indicates which payment operation triggered the hook:
+- `"stk_push"`     - STK Push payment
+- `"stk_query"`    - STK Query status check
+- `"b2c"`          - Business to Customer payment
+- `"b2b"`          - Business to Business payment
+- `"c2b_register"` - C2B URL registration
+- `"c2b_simulate"` - C2B payment simulation
+
+### Hook Features
+
+- **Error Isolation**: Hook failures don't break payment flow
+- **Multiple Hooks**: Support for chaining multiple handlers per event
+- **Safe Execution**: Failed hooks are logged but don't interrupt operations
+- **Rich Context**: Comprehensive event information for monitoring and analytics
 
 ## B2B Payment
 
