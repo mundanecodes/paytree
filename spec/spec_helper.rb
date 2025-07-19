@@ -1,5 +1,5 @@
 require "bundler/setup"
-require "payments"
+require "paytree"
 
 require "webmock/rspec"
 require "dotenv/load" if File.exist?(".env")

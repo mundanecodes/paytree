@@ -1,4 +1,4 @@
-# Payments
+# Paytree
 
 A simple, highly opinionated Rails-optional Ruby gem for mobile money integrations. Currently supports Kenya's M-Pesa via the Daraja API with plans for additional providers.
 
@@ -18,13 +18,13 @@ A simple, highly opinionated Rails-optional Ruby gem for mobile money integratio
 Add to your Gemfile:
 
 ```ruby
-gem 'payments'
+gem 'paytree'
 ```
 
 Or install directly:
 
 ```bash
-gem install payments
+gem install paytree
 ```
 
 ### 2. Get M-Pesa API Credentials
@@ -37,14 +37,14 @@ gem install payments
 
 ```ruby
 # For quick testing (uses sandbox by default)
-Payments.configure_mpesa_sandbox(
+Paytree.configure_mpesa_sandbox(
   key: "your_consumer_key",
   secret: "your_consumer_secret", 
   passkey: "your_passkey"
 )
 
 # Make your first payment request
-response = Payments::Mpesa::StkPush.call(
+response = Paytree::Mpesa::StkPush.call(
   phone_number: "254712345678",
   amount: 100,
   reference: "ORDER-001"
@@ -74,14 +74,14 @@ Then in your app:
 
 ```ruby
 # Auto-configure from environment
-Payments.auto_configure_mpesa!
+Paytree.auto_configure_mpesa!
 ```
 
 ### Option 2: Hash Configuration
 
 ```ruby
 # Hash-based configuration
-Payments.configure_mpesa(
+Paytree.configure_mpesa(
   key: "YOUR_CONSUMER_KEY",
   secret: "YOUR_CONSUMER_SECRET", 
   shortcode: "174379",
@@ -97,14 +97,14 @@ Payments.configure_mpesa(
 
 ```ruby
 # For development/testing
-Payments.configure_mpesa_sandbox(
+Paytree.configure_mpesa_sandbox(
   key: "YOUR_CONSUMER_KEY",
   secret: "YOUR_CONSUMER_SECRET",
   passkey: "YOUR_PASSKEY"
 )
 
 # For production
-Payments.configure_mpesa_production(
+Paytree.configure_mpesa_production(
   key: "YOUR_CONSUMER_KEY",
   secret: "YOUR_CONSUMER_SECRET",
   shortcode: "174379",
@@ -122,7 +122,7 @@ Initiate an M-Pesa STK Push (Lipa na M-Pesa Online) request.
 
 ```ruby
 # Initiate payment request - customer receives prompt on their phone
-response = Payments::Mpesa::StkPush.call(
+response = Paytree::Mpesa::StkPush.call(
   phone_number: "254712345678",  # Must be in 254XXXXXXXXX format
   amount: 100,                   # Amount in KES (Kenyan Shillings)
   reference: "ORDER-001"         # Your internal reference
@@ -149,7 +149,7 @@ Query the status of a previously initiated STK Push to see if the customer compl
 
 ```ruby
 # Check payment status using the CheckoutRequestID from STK Push
-response = Payments::Mpesa::StkQuery.call(
+response = Paytree::Mpesa::StkQuery.call(
   checkout_request_id: "ws_CO_123456789"
 )
 
@@ -183,7 +183,7 @@ Send funds directly to a customer’s M-Pesa wallet via the B2C API.
 
 ### Example
 ```ruby
-response = Payments::Mpesa::B2C.call(
+response = Paytree::Mpesa::B2C.call(
   phone_number: "254712345678",
   amount: 100,
   reference: "SALAARY2023JULY",
@@ -204,13 +204,13 @@ end
 ### 1  Register Validation & Confirmation URLs
 
 ```ruby
-Payments::Mpesa::C2B.register_urls(
+Paytree::Mpesa::C2B.register_urls(
   short_code:       Payments[:mpesa].shortcode,
   confirmation_url: "https://your-app.com/mpesa/confirm",
   validation_url:   "https://your-app.com/mpesa/validate"
 )
 
-response = Payments::Mpesa::C2B.simulate(
+response = Paytree::Mpesa::C2B.simulate(
   phone_number: "254712345678",
   amount: 75,
   reference: "INV-42"
@@ -262,7 +262,7 @@ Send funds from one PayBill or BuyGoods shortcode to another.
 ### Example
 
 ```ruby
-response = Payments::Mpesa::B2B.call(
+response = Paytree::Mpesa::B2B.call(
   short_code: "174379",                # Sender shortcode (use your actual shortcode)
   receiver_shortcode: "600111",        # Receiver shortcode
   amount: 1500,

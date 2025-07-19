@@ -1,5 +1,5 @@
 RSpec.shared_examples "a successful response" do |operation_key, id_key: nil|
-  it { expect(subject).to be_a(Payments::Response) }
+  it { expect(subject).to be_a(Paytree::Response) }
   it { expect(subject).to be_success }
   it { expect(subject.operation).to eq(operation_key) }
 
@@ -23,25 +23,25 @@ RSpec.shared_examples "a failed mpesa API call" do
 end
 
 RSpec.shared_examples "malformed mpesa response" do
-  it "raises Payments::Errors::MpesaMalformedResponse" do
+  it "raises Paytree::Errors::MpesaMalformedResponse" do
     expect {
       subject
-    }.to raise_error(Payments::Errors::MpesaMalformedResponse)
+    }.to raise_error(Paytree::Errors::MpesaMalformedResponse)
   end
 end
 
 RSpec.shared_examples "mpesa certificate validation" do
-  it "raises Payments::Errors::MpesaCertMissing" do
+  it "raises Paytree::Errors::MpesaCertMissing" do
     expect {
       subject
-    }.to raise_error(Payments::Errors::MpesaCertMissing, /Missing or unreadable certificate/)
+    }.to raise_error(Paytree::Errors::MpesaCertMissing, /Missing or unreadable certificate/)
   end
 end
 
 RSpec.shared_examples "mpesa config validation" do |missing_key|
-  it "raises Payments::Errors::ConfigurationError" do
+  it "raises Paytree::Errors::ConfigurationError" do
     expect {
       subject
-    }.to raise_error(Payments::Errors::ConfigurationError, /#{missing_key}/)
+    }.to raise_error(Paytree::Errors::ConfigurationError, /#{missing_key}/)
   end
 end

@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    payments (0.1.0)
+    paytree (0.2.0)
       faraday (~> 2.0)
 
 GEM
@@ -154,7 +154,7 @@ PLATFORMS
 DEPENDENCIES
   dotenv (~> 2.8)
   irb
-  payments!
+  paytree!
   rake (~> 13.0)
   rspec (~> 3.12)
   rubocop-rails-omakase

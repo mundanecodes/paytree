@@ -2,11 +2,11 @@
 # frozen_string_literal: true
 
 require "bundler/setup"
-require "payments"
+require "paytree"
 require "irb"
 
 # Optional preload for experimentation
-Payments.configure(:mpesa, Payments::Configs::Mpesa) do |config|
+Paytree.configure(:mpesa, Paytree::Configs::Mpesa) do |config|
   config.key = "test_key"
   config.secret = "test_secret"
   config.shortcode = "600999"
@@ -17,7 +17,7 @@ Payments.configure(:mpesa, Payments::Configs::Mpesa) do |config|
 
   config.extras = {
     callback_url: "https://example.com/callback",
-    cert_path: File.expand_path("spec/payments/mpesa/certs/test.cer", Dir.pwd),
+    cert_path: File.expand_path("spec/paytree/mpesa/certs/test.cer", Dir.pwd),
     timeout_url: "https://sandbox.example.com/mpesa/timeout",
     result_url: "https://sandbox.example.com/mpesa/result"
   }
@@ -26,11 +26,11 @@ end
 # Optional: define a custom console context (like Rails console helpers)
 module ConsoleContext
   def mpesa
-    Payments[:mpesa]
+    Paytree[:mpesa]
   end
 
   def stk_push(phone:, amount:, reference:)
-    Payments::Mpesa::StkPush.call(phone_number: phone, amount:, reference:)
+    Paytree::Mpesa::StkPush.call(phone_number: phone, amount:, reference:)
   end
 end
 
