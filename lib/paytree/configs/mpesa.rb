@@ -5,7 +5,7 @@ module Paytree
     class Mpesa
       attr_accessor :key, :secret, :shortcode, :passkey, :adapter,
         :initiator_name, :initiator_password, :sandbox,
-        :extras, :on_success, :on_error, :timeout
+        :extras, :timeout
 
       def initialize
         @extras = {}

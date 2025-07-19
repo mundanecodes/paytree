@@ -39,22 +39,6 @@ RSpec.describe "Simplified M-Pesa Configuration" do
       expect(config.extras[:result_url]).to eq("https://example.com/result")
     end
 
-    it "handles hook configuration" do
-      success_hook = ->(ctx) { puts "Success!" }
-      error_hook = ->(ctx) { puts "Error!" }
-
-      Paytree.configure_mpesa(
-        key: "test_key",
-        secret: "test_secret",
-        on_success: [success_hook],
-        on_error: [error_hook]
-      )
-
-      config = Paytree[:mpesa]
-      expect(config.on_success).to eq([success_hook])
-      expect(config.on_error).to eq([error_hook])
-    end
-
     it "sets sandbox default to true when not specified" do
       Paytree.configure_mpesa(
         key: "test_key",

@@ -75,46 +75,6 @@ module Paytree
         logger = config.respond_to?(:logger) ? config.logger : Logger.new($stdout)
 
         logger.error format_error_message(error, context)
-
-        if config.respond_to?(:on_error)
-          execute_hooks(config.on_error, :error, error, context, metadata)
-        end
-      end
-
-      def trigger_success(result, context, **metadata)
-        config = get_config_for_context(context)
-        return unless config.respond_to?(:on_success)
-
-        execute_hooks(config.on_success, :success, result, context, metadata)
-      end
-
-      def execute_hooks(hooks, event_type, payload, context, metadata)
-        hook_context = build_hook_context(payload, context, metadata, event_type)
-
-        Array(hooks).each do |hook|
-          safe_execute_hook(hook, hook_context)
-        end
-      end
-
-      def safe_execute_hook(hook, hook_context)
-        return unless hook&.respond_to?(:call)
-
-        hook.call(hook_context)
-      rescue => e
-        config = get_config_for_context(hook_context[:context])
-        logger = config.respond_to?(:logger) ? config.logger : Logger.new($stdout)
-        logger.warn "Hook execution failed for #{hook_context[:event_type]}: #{e.message}"
-      end
-
-      def build_hook_context(payload, context, metadata, event_type)
-        {
-          event_type:,
-          payload:,
-          context:,
-          provider: extract_provider_from_context(context) || :mpesa,
-          timestamp: Time.now,
-          **metadata
-        }
       end
 
       def get_config_for_context(context)
