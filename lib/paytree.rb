@@ -37,34 +37,6 @@ module Paytree
       registry.store_config(:mpesa, config)
     end
 
-    def configure_mpesa_sandbox(**options)
-      defaults = {sandbox: true, shortcode: "174379"}
-      configure_mpesa(**defaults.merge(options))
-    end
-
-    def configure_mpesa_production(**options)
-      defaults = {sandbox: false}
-      configure_mpesa(**defaults.merge(options))
-    end
-
-    def auto_configure_mpesa!
-      env_config = auto_load_env_vars
-      raise ArgumentError, "No M-Pesa environment variables found" if env_config.empty?
-
-      config = Configs::Mpesa.new
-
-      # Set configuration values from environment only
-      env_config.each do |key, value|
-        if config.respond_to?("#{key}=")
-          config.send("#{key}=", value)
-        elsif key == :extras
-          config.extras.merge!(value)
-        end
-      end
-
-      registry.store_config(:mpesa, config)
-    end
-
     def [](provider)
       registry[provider]
     end

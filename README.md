@@ -5,11 +5,10 @@ A simple, highly opinionated Rails-optional Ruby gem for mobile money integratio
 ## Features
 
 - **Simple & Minimal**: Clean API with sensible defaults
-- **Convention over Configuration**: Multiple setup patterns for different needs  
+- **Convention over Configuration**: One clear setup pattern, opinionated defaults
 - **Safe Defaults**: Sandbox mode, proper timeouts, comprehensive error handling
 - **Batteries Included**: STK Push, B2C, B2B, C2B operations out of the box
-- **Security First**: Environment-based configuration, no hardcoded secrets
-- **Hook System**: Built-in success/error callbacks for monitoring and analytics
+- **Security First**: Credential management, no hardcoded secrets
 
 ## Quick Start
 
@@ -36,10 +35,10 @@ gem install paytree
 ### 3. Basic Setup
 
 ```ruby
-# For quick testing (uses sandbox by default)
-Paytree.configure_mpesa_sandbox(
+# For quick testing (defaults to sandbox)
+Paytree.configure_mpesa(
   key: "your_consumer_key",
-  secret: "your_consumer_secret", 
+  secret: "your_consumer_secret",
   passkey: "your_passkey"
 )
 
@@ -53,64 +52,37 @@ response = Paytree::Mpesa::StkPush.call(
 puts response.success? ? "Payment initiated!" : "Error: #{response.message}"
 ```
 
+---
+
 ## Configuration
 
-Choose the approach that fits your application:
+Paytree uses a single `configure_mpesa` method that defaults to sandbox mode for safety.
 
-### Option 1: Environment Variables (Recommended for Production)
+### Rails Applications (Recommended)
 
-Set these environment variables:
-
-```bash
-MPESA_CONSUMER_KEY=your_key
-MPESA_CONSUMER_SECRET=your_secret
-MPESA_SHORTCODE=174379
-MPESA_PASSKEY=your_passkey
-MPESA_SANDBOX=false
-MPESA_CALLBACK_URL=https://your-app.com/mpesa/callback
-```
-
-Then in your app:
+Create `config/initializers/paytree.rb`:
 
 ```ruby
-# Auto-configure from environment
-Paytree.auto_configure_mpesa!
-```
+# config/initializers/paytree.rb
 
-### Option 2: Hash Configuration
-
-```ruby
-# Hash-based configuration
+# Development/Testing (defaults to sandbox)
 Paytree.configure_mpesa(
-  key: "YOUR_CONSUMER_KEY",
-  secret: "YOUR_CONSUMER_SECRET", 
-  shortcode: "174379",
-  passkey: "YOUR_PASSKEY",
-  sandbox: false,  # Set to true for testing
-  extras: {
-    callback_url: "https://your-app.com/mpesa/callback"
-  }
+  key: Rails.application.credentials.mpesa[:consumer_key],
+  secret: Rails.application.credentials.mpesa[:consumer_secret],
+  passkey: Rails.application.credentials.mpesa[:passkey]
 )
+
+# Production (explicitly set sandbox: false)
+# Paytree.configure_mpesa(
+#   key: Rails.application.credentials.mpesa[:consumer_key],
+#   secret: Rails.application.credentials.mpesa[:consumer_secret],
+#   shortcode: "YOUR_PRODUCTION_SHORTCODE",
+#   passkey: Rails.application.credentials.mpesa[:passkey],
+#   sandbox: false
+# )
 ```
 
-### Option 3: Preset Configurations
-
-```ruby
-# For development/testing
-Paytree.configure_mpesa_sandbox(
-  key: "YOUR_CONSUMER_KEY",
-  secret: "YOUR_CONSUMER_SECRET",
-  passkey: "YOUR_PASSKEY"
-)
-
-# For production
-Paytree.configure_mpesa_production(
-  key: "YOUR_CONSUMER_KEY",
-  secret: "YOUR_CONSUMER_SECRET",
-  shortcode: "174379",
-  passkey: "YOUR_PASSKEY"
-)
-```
+---
 
 ## Usage Examples
 
@@ -132,7 +104,7 @@ response = Paytree::Mpesa::StkPush.call(
 if response.success?
   puts "Payment request sent! Customer will receive STK prompt."
   puts "Checkout Request ID: #{response.data['CheckoutRequestID']}"
-  
+
   # Store the CheckoutRequestID to query status later
   order.update(mpesa_checkout_id: response.data['CheckoutRequestID'])
 else
@@ -155,19 +127,19 @@ response = Paytree::Mpesa::StkQuery.call(
 
 if response.success?
   result_code = response.data["ResultCode"]
-  
+
   case result_code
   when "0"
     puts "Payment completed successfully!"
     puts "Amount: #{response.data['Amount']}"
     puts "Receipt: #{response.data['MpesaReceiptNumber']}"
     puts "Transaction Date: #{response.data['TransactionDate']}"
-    
+
     # Update your order as paid
     order.update(status: 'paid', mpesa_receipt: response.data['MpesaReceiptNumber'])
   when "1032"
     puts "Payment cancelled by user"
-  when "1037" 
+  when "1037"
     puts "Payment timed out (user didn't respond)"
   else
     puts "Payment failed: #{response.data['ResultDesc']}"
@@ -177,7 +149,11 @@ else
 end
 ```
 
-## Initiate B2C Payment
+---
+
+## B2C Payment (Business to Customer)
+
+### Initiate B2C Payment
 
 Send funds directly to a customer’s M-Pesa wallet via the B2C API.
 
@@ -199,7 +175,9 @@ else
 end
 ```
 
-## C2B (Customer -> Business)
+---
+
+## C2B (Customer to Business)
 
 ### 1  Register Validation & Confirmation URLs
 
@@ -223,39 +201,9 @@ else
 end
 ```
 
-## Hook System
+---
 
-The payment system provides hooks for monitoring and reacting to payment events. Hooks receive rich context including event type, payload, provider, timestamp, and custom metadata.
-
-### Available Hook Context
-
-```ruby
-{
-  event_type: :success,          # :success or :error
-  payload: response_object,      # Result or error object
-  context: "stk_push",           # Operation type that triggered the hook
-  provider: :mpesa,              # Payment provider
-  timestamp: Time.now,           # Execution time
-  # ... any additional metadata
-}
-```
-
-The `context` field indicates which payment operation triggered the hook:
-- `"stk_push"`     - STK Push payment
-- `"stk_query"`    - STK Query status check
-- `"b2c"`          - Business to Customer payment
-- `"b2b"`          - Business to Business payment
-- `"c2b_register"` - C2B URL registration
-- `"c2b_simulate"` - C2B payment simulation
-
-### Hook Features
-
-- **Error Isolation**: Hook failures don't break payment flow
-- **Multiple Hooks**: Support for chaining multiple handlers per event
-- **Safe Execution**: Failed hooks are logged but don't interrupt operations
-- **Rich Context**: Comprehensive event information for monitoring and analytics
-
-## B2B Payment
+## B2B Payment (Business to Business)
 
 Send funds from one PayBill or BuyGoods shortcode to another.
 
@@ -279,3 +227,70 @@ else
   puts "B2B failed: #{response.message}"
 end
 ```
+
+---
+
+## Response Format
+
+All Paytree operations return a consistent response object with these attributes:
+
+### Response Attributes
+
+```ruby
+response.success?    # Boolean - true if operation succeeded
+response.message     # String - human-readable message
+response.data        # Hash - response data from M-Pesa API
+response.code        # String - M-Pesa response code (if available)
+```
+
+### Success Response Example
+
+```ruby
+response = Paytree::Mpesa::StkPush.call(
+  phone_number: "254712345678",
+  amount: 100,
+  reference: "ORDER-001"
+)
+
+if response.success?
+  puts response.message  # "STK Push request successful"
+  puts response.data     # {"MerchantRequestID"=>"29115-34620561-1", "CheckoutRequestID"=>"ws_CO_191220191020363925"...}
+end
+```
+
+### Error Response Example
+
+```ruby
+unless response.success?
+  puts response.message  # "Invalid Access Token"
+  puts response.code     # "404.001.03" (if available)
+  puts response.data     # {
+                         #   "requestId" => "",
+                         #   "errorCode" => "404.001.03", 
+                         #   "errorMessage" => "Invalid Access Token"
+                         # }
+end
+```
+
+
+
+### Common Response Data Fields
+
+**STK Push Response:**
+- `CheckoutRequestID` - Use this to query payment status
+- `MerchantRequestID` - Internal M-Pesa tracking ID
+- `CustomerMessage` - Message shown to customer
+
+**STK Query Response:**
+- `ResultCode` - "0" = success, "1032" = cancelled, "1037" = timeout
+- `ResultDesc` - Human-readable result description
+- `MpesaReceiptNumber` - M-Pesa transaction receipt (on success)
+- `Amount` - Transaction amount
+- `TransactionDate` - When payment was completed
+
+**B2C/B2B Response:**
+- `ConversationID` - Transaction tracking ID
+- `OriginatorConversationID` - Your internal tracking ID
+- `ResponseDescription` - Status message
+
+---
