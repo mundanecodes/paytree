@@ -21,8 +21,8 @@ module Payments
                   QueueTimeOutURL: config.extras[:timeout_url],
                   ResultURL: config.extras[:result_url],
                   CommandID: opts[:command_id] || "BusinessPayment",
-                  Remarks: opts[:remarks],
-                  Occasion: opts[:occasion]
+                  Remarks: opts[:remarks] || "OK",
+                  Occasion: opts[:occasion] || "Payment"
                 }.compact
 
                 post_to_mpesa(:b2c, ENDPOINT, payload)
