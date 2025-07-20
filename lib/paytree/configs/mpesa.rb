@@ -5,13 +5,14 @@ module Paytree
     class Mpesa
       attr_accessor :key, :secret, :shortcode, :passkey, :adapter,
         :initiator_name, :initiator_password, :sandbox,
-        :extras, :timeout
+        :extras, :timeout, :retryable_errors
 
       def initialize
         @extras = {}
         @logger = nil
         @mutex = Mutex.new
         @timeout = 30      # Default 30 second timeout
+        @retryable_errors = []  # Default empty array
       end
 
       def base_url

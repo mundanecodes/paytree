@@ -20,6 +20,16 @@ module Paytree
       status == :error
     end
 
+    def retryable?
+      return false unless error?
+      return false unless code
+
+      config = Paytree[provider]
+      return false unless config&.respond_to?(:retryable_errors)
+
+      config.retryable_errors.include?(code)
+    end
+
     def to_h
       {
         provider:,

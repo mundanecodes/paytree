@@ -78,7 +78,8 @@ Paytree.configure_mpesa(
 #   secret: Rails.application.credentials.mpesa[:consumer_secret],
 #   shortcode: "YOUR_PRODUCTION_SHORTCODE",
 #   passkey: Rails.application.credentials.mpesa[:passkey],
-#   sandbox: false
+#   sandbox: false,
+#   retryable_errors: ["429.001.01", "500.001.02", "503.001.01"]  # Optional: errors to retry
 # )
 ```
 
@@ -241,6 +242,7 @@ response.success?    # Boolean - true if operation succeeded
 response.message     # String - human-readable message
 response.data        # Hash - response data from M-Pesa API
 response.code        # String - M-Pesa response code (if available)
+response.retryable?  # Boolean - true if error is configured as retryable
 ```
 
 ### Success Response Example
@@ -269,6 +271,14 @@ unless response.success?
                          #   "errorCode" => "404.001.03", 
                          #   "errorMessage" => "Invalid Access Token"
                          # }
+  
+  # Check if error is retryable (based on configuration)
+  if response.retryable?
+    puts "This error can be retried"
+    # Implement your retry logic here
+  else
+    puts "This error should not be retried"
+  end
 end
 ```
 
@@ -292,5 +302,40 @@ end
 - `ConversationID` - Transaction tracking ID
 - `OriginatorConversationID` - Your internal tracking ID
 - `ResponseDescription` - Status message
+
+### Retryable Errors
+
+Paytree allows you to configure which error codes should be considered retryable. This is useful for building resilient payment systems that can automatically retry transient errors.
+
+**Common retryable errors:**
+- `"429.001.01"` - Rate limit exceeded
+- `"500.001.02"` - Temporary server error
+- `"503.001.01"` - Service temporarily unavailable
+
+Configure retryable errors during setup:
+
+```ruby
+Paytree.configure_mpesa(
+  key: "YOUR_KEY",
+  secret: "YOUR_SECRET",
+  retryable_errors: ["429.001.01", "500.001.02", "503.001.01"]
+)
+```
+
+Then check if an error response can be retried:
+
+```ruby
+response = Paytree::Mpesa::StkPush.call(...)
+
+unless response.success?
+  if response.retryable?
+    # Implement exponential backoff retry logic
+    retry_with_backoff
+  else
+    # Handle permanent error
+    handle_permanent_failure(response)
+  end
+end
+```
 
 ---
