@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    paytree (0.2.0)
+    paytree (0.2.1)
       faraday (~> 2.0)
 
 GEM
