@@ -1,6 +1,16 @@
+<p align="center">
+  <img src="https://badge.fury.io/rb/paytree.svg" />
+  <img src="https://img.shields.io/badge/license-MIT-green.svg" />
+  <img src="https://img.shields.io/badge/ruby-3.2+-red" />
+  <a href="https://github.com/mundanecodes/paytree/actions">
+    <img src="https://github.com/mundanecodes/paytree/actions/workflows/ci.yml/badge.svg" />
+  </a>
+</p>
+
 # Paytree
 
-A simple, highly opinionated Rails-optional Ruby gem for mobile money integrations. Currently supports Kenya's M-Pesa via the Daraja API with plans for additional providers.
+A simple, highly opinionated Rails-optional Ruby gem for mobile money integrations.
+Currently supports Kenya's M-Pesa via the Daraja API with plans for additional providers.
 
 ## Features
 
@@ -268,10 +278,10 @@ unless response.success?
   puts response.code     # "404.001.03" (if available)
   puts response.data     # {
                          #   "requestId" => "",
-                         #   "errorCode" => "404.001.03", 
+                         #   "errorCode" => "404.001.03",
                          #   "errorMessage" => "Invalid Access Token"
                          # }
-  
+
   # Check if error is retryable (based on configuration)
   if response.retryable?
     puts "This error can be retried"

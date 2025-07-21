@@ -6,8 +6,10 @@ Gem::Specification.new do |spec|
   spec.authors = ["Charles Chuck"]
   spec.email = ["chalcchuck@gmail.com"]
 
-  spec.summary = "Rails-optional payments abstraction for M-Pesa (Daraja) and more."
-  spec.description = "Clean, adapter-based Ruby DSL for mobile money integrations like M-Pesa via Daraja, with future provider support (Tingg, Airtel, Cellulant)."
+  spec.summary = "A Ruby wrapper for the Mpesa API in Kenya."
+  spec.description = <<~DESC
+    Paytree is a lightweight Ruby wrapper for the full Mpesa API suite in Kenya - including B2C, C2B, STK Push and more. It supports certificate encryption, clean facades, and a pluggable adapter system (e.g. Daraja, Airtel..). Built for Rails and pure Ruby apps.
+  DESC
   spec.homepage = "https://github.com/mundanecodes/paytree"
   spec.license = "MIT"
   spec.required_ruby_version = ">= 3.2.0"
@@ -20,6 +22,8 @@ Gem::Specification.new do |spec|
   spec.metadata["wiki_uri"] = "https://github.com/mundanecodes/paytree/wiki"
   spec.metadata["mailing_list_uri"] = "https://github.com/mundanecodes/paytree/discussions"
   spec.metadata["allowed_push_host"] = "https://rubygems.org"
+  spec.metadata["keywords"] = "mpesa,mpesa-api,b2c,stk-push,mobile-money,payments,daraja"
+  spec.metadata["rubygems_mfa_required"] = "true"
 
   spec.files = Dir.chdir(__dir__) do
     `git ls-files -z`.split("\x0").reject do |f|
