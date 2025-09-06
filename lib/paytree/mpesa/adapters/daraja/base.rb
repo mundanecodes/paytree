@@ -111,6 +111,7 @@ module Paytree
               SecureRandom.uuid_v7
               SecureRandom.uuid
             end
+
             private
 
             def fetch_token
