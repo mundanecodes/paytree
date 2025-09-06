@@ -27,7 +27,7 @@ Gem::Specification.new do |spec|
 
   spec.files = Dir.chdir(__dir__) do
     `git ls-files -z`.split("\x0").reject do |f|
-      f.match(%r{^(test|spec|features|bin|exe)/}) || f.include?(".git")
+      f.match(%r{^(test|spec|features|bin|exe)/}) || f.include?(".git") || f.end_with?(".gem")
     end
   end
 
