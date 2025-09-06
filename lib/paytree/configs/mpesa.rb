@@ -5,7 +5,7 @@ module Paytree
     class Mpesa
       attr_accessor :key, :secret, :shortcode, :passkey, :adapter,
         :initiator_name, :initiator_password, :sandbox,
-        :extras, :timeout, :retryable_errors
+        :extras, :timeout, :retryable_errors, :api_version
 
       def initialize
         @extras = {}
@@ -13,6 +13,7 @@ module Paytree
         @mutex = Mutex.new
         @timeout = 30      # Default 30 second timeout
         @retryable_errors = []  # Default empty array
+        @api_version = "v1"     # Default to v1 for backward compatibility
       end
 
       def base_url

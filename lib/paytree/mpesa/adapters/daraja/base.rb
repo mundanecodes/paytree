@@ -1,4 +1,5 @@
 require "base64"
+require "securerandom"
 require_relative "response_helpers"
 require_relative "../../../utils/error_handling"
 
@@ -104,6 +105,10 @@ module Paytree
               else
                 raise Paytree::Errors::ValidationError, "#{field} cannot be blank" if value.to_s.strip.empty?
               end
+            end
+
+            def generate_conversation_id
+              SecureRandom.uuid
             end
 
             private

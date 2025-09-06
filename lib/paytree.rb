@@ -51,7 +51,8 @@ module Paytree
         passkey: "MPESA_PASSKEY",
         initiator_name: "MPESA_INITIATOR_NAME",
         initiator_password: "MPESA_INITIATOR_PASSWORD",
-        sandbox: "MPESA_SANDBOX"
+        sandbox: "MPESA_SANDBOX",
+        api_version: "MPESA_API_VERSION"
       }
 
       config = {}
