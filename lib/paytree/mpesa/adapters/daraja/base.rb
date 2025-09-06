@@ -108,7 +108,6 @@ module Paytree
             end
 
             def generate_conversation_id
-              SecureRandom.uuid_v7
               SecureRandom.uuid
             end
 
