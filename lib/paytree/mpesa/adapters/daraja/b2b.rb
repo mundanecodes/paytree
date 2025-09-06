@@ -5,7 +5,9 @@ module Paytree
     module Adapters
       module Daraja
         class B2B < Base
-          ENDPOINT = "/mpesa/b2b/v1/paymentrequest"
+          def self.endpoint
+            "/mpesa/b2b/#{config.api_version}/paymentrequest"
+          end
 
           class << self
             def call(short_code:, receiver_shortcode:, amount:, account_reference:, **opts)
@@ -28,7 +30,7 @@ module Paytree
                   ResultURL: config.extras[:result_url]
                 }.compact
 
-                post_to_mpesa(:b2b, ENDPOINT, payload)
+                post_to_mpesa(:b2b, endpoint, payload)
               end
             end
           end

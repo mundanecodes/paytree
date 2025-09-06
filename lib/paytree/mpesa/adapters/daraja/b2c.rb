@@ -5,7 +5,9 @@ module Paytree
     module Adapters
       module Daraja
         class B2C < Base
-          ENDPOINT = "/mpesa/b2c/v1/paymentrequest"
+          def self.endpoint
+            "/mpesa/b2c/#{config.api_version}/paymentrequest"
+          end
 
           class << self
             def call(phone_number:, amount:, **opts)
@@ -23,9 +25,14 @@ module Paytree
                   CommandID: opts[:command_id] || "BusinessPayment",
                   Remarks: opts[:remarks] || "OK",
                   Occasion: opts[:occasion] || "Payment"
-                }.compact
+                }
 
-                post_to_mpesa(:b2c, ENDPOINT, payload)
+                # Add OriginatorConversationID for v3
+                if config.api_version == "v3"
+                  payload[:OriginatorConversationID] = opts[:originator_conversation_id] || generate_conversation_id
+                end
+
+                post_to_mpesa(:b2c, endpoint, payload.compact)
               end
             end
           end

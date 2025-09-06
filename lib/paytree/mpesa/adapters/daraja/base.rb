@@ -1,4 +1,5 @@
 require "base64"
+require "securerandom"
 require_relative "response_helpers"
 require_relative "../../../utils/error_handling"
 
@@ -106,6 +107,9 @@ module Paytree
               end
             end
 
+            def generate_conversation_id
+              SecureRandom.uuid_v7
+            end
             private
 
             def fetch_token
