@@ -18,6 +18,8 @@ Currently supports Kenya's M-Pesa via the Daraja API with plans for additional p
 - **Convention over Configuration**: One clear setup pattern, opinionated defaults
 - **Safe Defaults**: Sandbox mode, proper timeouts, comprehensive error handling
 - **Batteries Included**: STK Push, B2C, B2B, C2B operations out of the box
+- **API Versioning**: Support for both Daraja API v1 and v3 with backward compatibility
+- **Enhanced Reliability**: Automatic token retry with exponential backoff
 - **Security First**: Credential management, no hardcoded secrets
 
 ## Quick Start
@@ -89,9 +91,56 @@ Paytree.configure_mpesa(
 #   shortcode: "YOUR_PRODUCTION_SHORTCODE",
 #   passkey: Rails.application.credentials.mpesa[:passkey],
 #   sandbox: false,
-#   retryable_errors: ["429.001.01", "500.001.02", "503.001.01"]  # Optional: errors to retry
+#   api_version: "v1",                                            # Optional: "v1" (default) or "v3"
+#   retryable_errors: ["429.001.01", "500.001.02", "503.001.01"] # Optional: errors to retry
 # )
 ```
+
+---
+
+## API Version Support
+
+Paytree supports both M-Pesa Daraja API v1 and v3 endpoints. The API version can be configured globally or via environment variables.
+
+### Configuration Options
+
+```ruby
+# Use v1 API (default - backward compatible)
+Paytree.configure_mpesa(
+  key: "YOUR_KEY",
+  secret: "YOUR_SECRET",
+  api_version: "v1"  # Default
+)
+
+# Use v3 API (latest features)
+Paytree.configure_mpesa(
+  key: "YOUR_KEY",
+  secret: "YOUR_SECRET",
+  api_version: "v3"
+)
+
+# Or via environment variable
+ENV['MPESA_API_VERSION'] = 'v3'
+Paytree.configure_mpesa(
+  key: "YOUR_KEY",
+  secret: "YOUR_SECRET"
+  # api_version automatically picked up from ENV
+)
+```
+
+### Differences Between v1 and v3
+
+| Feature | v1 | v3 |
+|---------|----|----|
+| **Endpoints** | `/mpesa/b2c/v1/paymentrequest` | `/mpesa/b2c/v3/paymentrequest` |
+| **OriginatorConversationID** | Not required | Auto-generated UUID |
+| **Reliability** | Standard | Enhanced with better tracking |
+
+
+**Backward Compatibility:**
+- Existing code continues to work unchanged (defaults to v1)
+- No breaking changes when upgrading Paytree versions
+- Can switch between v1/v3 by changing configuration only
 
 ---
 
@@ -168,7 +217,7 @@ end
 
 Send funds directly to a customer’s M-Pesa wallet via the B2C API.
 
-### Example
+### Basic Example
 ```ruby
 response = Paytree::Mpesa::B2C.call(
   phone_number: "254712345678",
@@ -184,6 +233,43 @@ if response.success?
 else
   puts "Failed to initiate B2C payment: #{response.message}"
 end
+```
+
+### v3 API Features
+
+When using `api_version: "v3"`, B2C calls automatically include an `OriginatorConversationID` for enhanced tracking:
+
+```ruby
+# Configure for v3 API
+Paytree.configure_mpesa(
+  key: "YOUR_KEY",
+  secret: "YOUR_SECRET",
+  api_version: "v3"
+)
+
+# Same call, but now uses v3 endpoint with auto-generated OriginatorConversationID
+response = Paytree::Mpesa::B2C.call(
+  phone_number: "254712345678",
+  amount: 100
+)
+
+# v3 response includes additional tracking data
+if response.success?
+  puts "Conversation ID: #{response.data["ConversationID"]}"
+  puts "Originator ID: #{response.data["OriginatorConversationID"]}" # Auto-generated UUID
+end
+```
+
+### Custom OriginatorConversationID (v3 only)
+
+You can provide your own tracking ID for v3 API calls:
+
+```ruby
+response = Paytree::Mpesa::B2C.call(
+  phone_number: "254712345678",
+  amount: 100,
+  originator_conversation_id: "CUSTOM-TRACK-#{Time.now.to_i}"
+)
 ```
 
 ---
