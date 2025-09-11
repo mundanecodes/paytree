@@ -7,7 +7,7 @@ module Paytree
         Paytree::Errors::Base => e
         emit_error(e, context)
         raise
-      rescue Faraday::TimeoutError => e
+      rescue Faraday::TimeoutError, Net::OpenTimeout, Net::ReadTimeout => e
         handle_faraday_error(
           e,
           context,
@@ -54,7 +54,11 @@ module Paytree
           code = info[:code]
         else
           message = error.message
-          code = nil
+          code = case error
+          when Net::OpenTimeout then "timeout.connection"
+          when Net::ReadTimeout then "timeout.read"
+          when Faraday::TimeoutError then "timeout.request"
+          end
         end
 
         wrap_and_raise(

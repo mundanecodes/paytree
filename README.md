@@ -407,6 +407,9 @@ Paytree allows you to configure which error codes should be considered retryable
 - `"429.001.01"` - Rate limit exceeded
 - `"500.001.02"` - Temporary server error
 - `"503.001.01"` - Service temporarily unavailable
+- `"timeout.connection"` - Network connection timeout (Net::OpenTimeout)
+- `"timeout.read"` - Network read timeout (Net::ReadTimeout)
+- `"timeout.request"` - HTTP request timeout (Faraday::TimeoutError)
 
 Configure retryable errors during setup:
 
@@ -414,7 +417,14 @@ Configure retryable errors during setup:
 Paytree.configure_mpesa(
   key: "YOUR_KEY",
   secret: "YOUR_SECRET",
-  retryable_errors: ["429.001.01", "500.001.02", "503.001.01"]
+  retryable_errors: [
+    "429.001.01",         # Rate limit
+    "500.001.02",         # Server error  
+    "503.001.01",         # Service unavailable
+    "timeout.connection", # Connection timeout
+    "timeout.read",       # Read timeout
+    "timeout.request"     # Request timeout
+  ]
 )
 ```
 
