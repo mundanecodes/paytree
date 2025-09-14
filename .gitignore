@@ -12,3 +12,6 @@
 
 # JetBrains IDEs
 .idea/
+
+# Built gems
+*.gem

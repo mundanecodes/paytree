@@ -41,10 +41,6 @@ jobs:
       with:
         ruby-version: '3.3.0'
         bundler-cache: true
-    - name: Publish to RubyGems
+    - name: Build gem
       run: |
-        mkdir ~/.gem
-        echo -e "---\r\n:rubygems_api_key: ${{ secrets.RUBYGEMS_API_KEY }}" > ~/.gem/credentials
-        chmod 0600 ~/.gem/credentials
         gem build *.gemspec
-        gem push *.gem
