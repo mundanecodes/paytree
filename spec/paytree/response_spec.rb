@@ -9,7 +9,7 @@ RSpec.describe Paytree::Response do
       message: "Request accepted",
       code: "0",
       data: {checkout_request_id: "abc123"},
-      raw_response: double("Faraday::Response", status: 200)
+      raw_response: double("HTTPX::Response", status: 200)
     )
   end
 
@@ -58,7 +58,7 @@ RSpec.describe Paytree::Response do
           message: "Rate limit exceeded",
           code: "429.001.01",
           data: {},
-          raw_response: double("Faraday::Response", status: 429)
+          raw_response: double("HTTPX::Response", status: 429)
         )
       end
 
@@ -103,7 +103,7 @@ RSpec.describe Paytree::Response do
             message: "Network error",
             code: nil,
             data: {},
-            raw_response: double("Faraday::Response", status: 500)
+            raw_response: double("HTTPX::Response", status: 500)
           )
         end
 

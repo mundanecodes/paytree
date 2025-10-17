@@ -34,7 +34,7 @@ Gem::Specification.new do |spec|
   spec.require_paths = ["lib"]
 
   # Runtime deps
-  spec.add_dependency "faraday", "~> 2.0"
+  spec.add_dependency "httpx", "~> 1.0"
 
   # Dev/test deps
   spec.add_development_dependency "rspec", "~> 3.12"

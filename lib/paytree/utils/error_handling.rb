@@ -7,35 +7,61 @@ module Paytree
         Paytree::Errors::Base => e
         emit_error(e, context)
         raise
-      rescue Faraday::TimeoutError, Net::OpenTimeout, Net::ReadTimeout => e
-        handle_faraday_error(
+      rescue HTTPX::TimeoutError => e
+        handle_http_error(
           e,
           context,
           error_class: Paytree::Errors::MpesaResponseError,
-          error_type: "Timeout"
+          error_type: "Timeout",
+          code: "timeout.request"
         )
-      rescue Faraday::ParsingError, JSON::ParserError => e
-        handle_faraday_error(
+      rescue Net::OpenTimeout => e
+        handle_http_error(
+          e,
+          context,
+          error_class: Paytree::Errors::MpesaResponseError,
+          error_type: "Timeout",
+          code: "timeout.connection"
+        )
+      rescue Net::ReadTimeout => e
+        handle_http_error(
+          e,
+          context,
+          error_class: Paytree::Errors::MpesaResponseError,
+          error_type: "Timeout",
+          code: "timeout.read"
+        )
+      rescue JSON::ParserError => e
+        handle_http_error(
           e,
           context,
           error_class: Paytree::Errors::MpesaMalformedResponse,
           error_type: "Malformed response"
         )
-      rescue Faraday::ClientError => e
-        handle_faraday_error(
+      rescue HTTPX::HTTPError => e
+        if e.response.status >= 500
+          handle_http_error(
+            e,
+            context,
+            error_class: Paytree::Errors::MpesaServerError,
+            error_type: "Server error",
+            extract_info: true
+          )
+        else
+          handle_http_error(
+            e,
+            context,
+            error_class: Paytree::Errors::MpesaClientError,
+            error_type: "Client error",
+            extract_info: true
+          )
+        end
+      rescue HTTPX::Error => e
+        handle_http_error(
           e,
           context,
-          error_class: Paytree::Errors::MpesaClientError,
-          error_type: "Client error",
-          extract_info: true
-        )
-      rescue Faraday::ServerError => e
-        handle_faraday_error(
-          e,
-          context,
-          error_class: Paytree::Errors::MpesaServerError,
-          error_type: "Server error",
-          extract_info: true
+          error_class: Paytree::Errors::MpesaResponseError,
+          error_type: "HTTP error"
         )
       rescue => e
         wrap_and_raise(
@@ -47,18 +73,13 @@ module Paytree
 
       private
 
-      def handle_faraday_error(error, context, error_class:, error_type:, extract_info: false)
+      def handle_http_error(error, context, error_class:, error_type:, extract_info: false, code: nil)
         if extract_info
-          info = parse_faraday_error(error)
+          info = parse_http_error(error)
           message = info[:message] || error.message
-          code = info[:code]
+          code ||= info[:code]
         else
           message = error.message
-          code = case error
-          when Net::OpenTimeout then "timeout.connection"
-          when Net::ReadTimeout then "timeout.read"
-          when Faraday::TimeoutError then "timeout.request"
-          end
         end
 
         wrap_and_raise(
@@ -92,8 +113,14 @@ module Paytree
         nil
       end
 
-      def parse_faraday_error(faraday_error)
-        body = faraday_error.response&.dig(:body)
+      def parse_http_error(http_error)
+        return {} unless http_error.respond_to?(:response)
+
+        body = begin
+          http_error.response.json
+        rescue
+          http_error.response.body.to_s
+        end
         return {} unless body.is_a?(Hash)
 
         {

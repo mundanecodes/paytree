@@ -1,6 +1,9 @@
 require "base64"
 require "securerandom"
 require_relative "response_helpers"
+require_relative "http_client_factory"
+require_relative "validator"
+require_relative "token_manager"
 require_relative "../../../utils/error_handling"
 
 module Paytree
@@ -11,34 +14,30 @@ module Paytree
           class << self
             include Paytree::Utils::ErrorHandling
             include Paytree::Mpesa::Adapters::Daraja::ResponseHelpers
+            include Paytree::Mpesa::Adapters::Daraja::HttpClientFactory
+            include Paytree::Mpesa::Adapters::Daraja::Validator
+            include Paytree::Mpesa::Adapters::Daraja::TokenManager
 
             def config = Paytree[:mpesa]
 
-            def connection
-              @connection ||= Faraday.new(url: config.base_url) do |conn|
-                conn.options.timeout = config.timeout
-                conn.options.open_timeout = config.timeout / 2
+            # Thread-safe HTTP client for regular API calls
+            def http_client
+              thread_safe_client(:@http_client)
+            end
 
-                conn.request :json
-                conn.response :json, content_type: "application/json"
-              end
+            # Thread-safe HTTP client with retry logic for token fetching
+            # Retries on: timeouts, connection errors, and 5xx server errors
+            def token_http_client
+              thread_safe_client(:@token_http_client, plugins: [:retries], **retry_options)
             end
 
             def post_to_mpesa(operation, endpoint, payload)
-              build_response(
-                connection.post(endpoint, payload.to_json, headers),
-                operation
-              )
+              response = http_client.post(endpoint, json: payload, headers:)
+              build_response(response, operation)
             end
 
             def headers
               {"Authorization" => "Bearer #{token}", "Content-Type" => "application/json"}
-            end
-
-            def token
-              return @token if token_valid?
-
-              fetch_token
             end
 
             def encrypt_credential(config)
@@ -56,80 +55,8 @@ module Paytree
                 "Failed to encrypt password with certificate #{cert_path}: #{e.message}"
             end
 
-            # ------------------------------------------------------------------
-            # Validation rules
-            # ------------------------------------------------------------------
-            VALIDATIONS = {
-              c2b_register: {required: %i[short_code confirmation_url validation_url]},
-              c2b_simulate: {required: %i[phone_number amount reference]},
-              stk_push: {required: %i[phone_number amount reference]},
-              b2c: {required: %i[phone_number amount], config: %i[result_url]},
-              b2b: {
-                required: %i[short_code receiver_shortcode account_reference amount],
-                config: %i[result_url timeout_url],
-                command_id: %w[BusinessPayBill BusinessBuyGoods]
-              }
-            }.freeze
-
-            def validate_for(operation, params = {})
-              rules = VALIDATIONS[operation] ||
-                raise(Paytree::Errors::UnsupportedOperation, "Unknown operation: #{operation}")
-
-              Array(rules[:required]).each { |field| validate_field(field, params[field]) }
-
-              Array(rules[:config]).each do |key|
-                unless config.extras[key]
-                  raise Paytree::Errors::ConfigurationError, "Missing `#{key}` in Mpesa extras config"
-                end
-              end
-
-              if (allowed = rules[:command_id]) && !allowed.include?(params[:command_id])
-                raise Paytree::Errors::ValidationError,
-                  "command_id must be one of: #{allowed.join(", ")}"
-              end
-            end
-
-            def validate_field(field, value)
-              case field
-              when :amount
-                unless value.is_a?(Numeric) && value >= 1
-                  raise Paytree::Errors::ValidationError,
-                    "amount must be a positive number"
-                end
-              when :phone_number
-                phone_regex = /^254\d{9}$/
-                unless value.to_s.match?(phone_regex)
-                  raise Paytree::Errors::ValidationError,
-                    "phone_number must be a valid Kenyan format (254XXXXXXXXX)"
-                end
-              else
-                raise Paytree::Errors::ValidationError, "#{field} cannot be blank" if value.to_s.strip.empty?
-              end
-            end
-
             def generate_conversation_id
               SecureRandom.uuid
-            end
-
-            private
-
-            def fetch_token
-              cred = Base64.strict_encode64("#{config.key}:#{config.secret}")
-
-              response = connection.get("/oauth/v1/generate", grant_type: "client_credentials") do |r|
-                r.headers["Authorization"] = "Basic #{cred}"
-              end
-
-              data = response.body
-              @token = data["access_token"]
-              @token_expiry = Time.now + data["expires_in"].to_i
-              @token
-            rescue Faraday::Error => e
-              raise Paytree::Errors::MpesaTokenError, "Unable to fetch token: #{e.message}"
-            end
-
-            def token_valid?
-              @token && @token_expiry && Time.now < @token_expiry
             end
           end
         end

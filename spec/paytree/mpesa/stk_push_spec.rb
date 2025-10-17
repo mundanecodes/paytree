@@ -32,7 +32,8 @@ RSpec.describe Paytree::Mpesa::StkPush do
 
       stub_request(:get, %r{/oauth/v1/generate}).to_return(
         status: 200,
-        body: {access_token: "new_token", expires_in: 3600}.to_json
+        body: {access_token: "new_token", expires_in: 3600}.to_json,
+        headers: {"Content-Type" => "application/json"}
       )
 
       stub_request(:post, %r{/stkpush/v1/processrequest}).to_return(

@@ -1,5 +1,5 @@
 require "json"
-require "faraday"
+require "httpx"
 
 Dir[File.join(__dir__, "paytree/**/*.rb")].sort.each { |file| require file }
 
