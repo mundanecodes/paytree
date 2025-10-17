@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    paytree (0.3.0)
+    paytree (0.4.0)
       httpx (~> 1.0)
 
 GEM
