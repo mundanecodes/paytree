@@ -2,7 +2,7 @@ PATH
   remote: .
   specs:
     paytree (0.3.0)
-      faraday (~> 2.0)
+      httpx (~> 1.0)
 
 GEM
   remote: https://rubygems.org/
@@ -35,13 +35,10 @@ GEM
     diff-lcs (1.6.2)
     drb (2.2.3)
     erb (5.0.2)
-    faraday (2.13.2)
-      faraday-net_http (>= 2.0, < 3.5)
-      json
-      logger
-    faraday-net_http (3.4.1)
-      net-http (>= 0.5.0)
     hashdiff (1.2.0)
+    http-2 (1.1.1)
+    httpx (1.6.2)
+      http-2 (>= 1.0.0)
     i18n (1.14.7)
       concurrent-ruby (~> 1.0)
     io-console (0.8.1)
@@ -54,8 +51,6 @@ GEM
     lint_roller (1.1.0)
     logger (1.7.0)
     minitest (5.25.5)
-    net-http (0.6.0)
-      uri
     parallel (1.27.0)
     parser (3.3.8.0)
       ast (~> 2.4.1)
@@ -147,6 +142,7 @@ GEM
       hashdiff (>= 0.4.0, < 2.0.0)
 
 PLATFORMS
+  arm64-darwin-25
   x86_64-darwin-24
   x86_64-darwin-25
   x86_64-linux

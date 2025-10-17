@@ -2,6 +2,11 @@ require "bundler/setup"
 require "paytree"
 
 require "webmock/rspec"
+WebMock.enable!
+WebMock.disable_net_connect!(allow_localhost: true)
+WebMock::HttpLibAdapterRegistry.instance.register(:httpx, "WebMock::HttpLibAdapters::HttpxAdapter")
+require "httpx/adapters/webmock"
+
 require "dotenv/load" if File.exist?(".env")
 
 Dir[File.expand_path("support/**/*.rb", __dir__)].each { |f| require f }
