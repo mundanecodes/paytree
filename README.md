@@ -409,7 +409,7 @@ Paytree allows you to configure which error codes should be considered retryable
 - `"503.001.01"` - Service temporarily unavailable
 - `"timeout.connection"` - Network connection timeout (Net::OpenTimeout)
 - `"timeout.read"` - Network read timeout (Net::ReadTimeout)
-- `"timeout.request"` - HTTP request timeout (Faraday::TimeoutError)
+- `"timeout.request"` - HTTP request timeout (HTTPX::TimeoutError)
 
 Configure retryable errors during setup:
 

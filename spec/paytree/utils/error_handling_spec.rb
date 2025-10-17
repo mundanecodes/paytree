@@ -54,11 +54,12 @@ RSpec.describe Paytree::Utils::ErrorHandling do
       end
     end
 
-    context "when Faraday::TimeoutError occurs" do
+    context "when HTTPX::TimeoutError occurs" do
       it "raises MpesaResponseError with timeout.request code" do
         expect do
           instance.with_error_handling(context: "b2c") do
-            raise Faraday::TimeoutError, "Request timeout"
+            error = HTTPX::TimeoutError.new(double("request"), "Request timeout")
+            raise error
           end
         end.to raise_error(Paytree::Errors::MpesaResponseError) do |error|
           expect(error.code).to eq("timeout.request")

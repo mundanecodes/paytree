@@ -12,7 +12,24 @@ module Paytree
           e,
           context,
           error_class: Paytree::Errors::MpesaResponseError,
-          error_type: "Timeout"
+          error_type: "Timeout",
+          code: "timeout.request"
+        )
+      rescue Net::OpenTimeout => e
+        handle_http_error(
+          e,
+          context,
+          error_class: Paytree::Errors::MpesaResponseError,
+          error_type: "Timeout",
+          code: "timeout.connection"
+        )
+      rescue Net::ReadTimeout => e
+        handle_http_error(
+          e,
+          context,
+          error_class: Paytree::Errors::MpesaResponseError,
+          error_type: "Timeout",
+          code: "timeout.read"
         )
       rescue JSON::ParserError => e
         handle_http_error(
@@ -56,18 +73,13 @@ module Paytree
 
       private
 
-      def handle_http_error(error, context, error_class:, error_type:, extract_info: false)
+      def handle_http_error(error, context, error_class:, error_type:, extract_info: false, code: nil)
         if extract_info
           info = parse_http_error(error)
           message = info[:message] || error.message
-          code = info[:code]
+          code ||= info[:code]
         else
           message = error.message
-          code = case error
-          when Net::OpenTimeout then "timeout.connection"
-          when Net::ReadTimeout then "timeout.read"
-          when Faraday::TimeoutError then "timeout.request"
-          end
         end
 
         wrap_and_raise(
